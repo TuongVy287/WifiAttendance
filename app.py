@@ -15,7 +15,7 @@ def dangnhap():
 @app.route("/thanhvien", methods=["POST"])
 def add_thanhvien():
     data = request.json
-    db.add_thanhvien(data["mssv"], data["hoten"], data["email"], data["tenthietbi"])
+    db.add_thanhvien(data["mssv"], data["hoten"], data["email"], data["mac"])
     return jsonify({"message": "Thêm thành viên thành công!"}), 201
 
 @app.route("/thanhvien", methods=["GET"])
@@ -26,7 +26,7 @@ def get_thanhvien():
 @app.route("/diemdanh", methods=["POST"])
 def add_diemdanh():
     data = request.json
-    db.add_diemdanh(data["tenthietbi"], data["trangthai"])
+    db.add_diemdanh(data["mac"], data["trangthai"])
     return jsonify({"message": "Ghi nhận điểm danh thành công!"}), 201
 
 @app.route("/diemdanh", methods=["GET"])
