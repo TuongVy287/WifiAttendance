@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from datetime import datetime, time
 
 # ====== KẾT NỐI MONGODB ======
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb+srv://admin:Cisco%40c302@cluster0.vmxlvao.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client["diemdanh_wifi"]
 
 # ====== HÀM DÙNG CHUNG ======
@@ -37,9 +37,9 @@ def get_trangthai_diemdanh():
     elif time(9, 1) <= now <= time(11, 30):
         return "Vắng"
     # Buổi chiều
-    elif time(12, 50) <= now <= time(13, 30):
+    elif time(12,0) <= now <= time(12, 30):
         return "Có mặt"
-    elif time(13, 31) <= now <= time(14, 0):
+    elif time(12, 31) <= now <= time(14, 0):
         return "Trễ"
     elif time(14, 1) <= now <= time(16, 30):
         return "Vắng"
