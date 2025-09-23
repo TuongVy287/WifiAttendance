@@ -31,27 +31,27 @@ def get_trangthai_diemdanh():
     now = datetime.now().time()
     # Buổi sáng
     if time(7, 0) <= now <= time(7, 30):
-        return "có mặt"
+        return "Có mặt"
     elif time(7, 31) <= now <= time(9, 0):
-        return "trễ"
+        return "Trễ"
     elif time(9, 1) <= now <= time(11, 30):
-        return "vắng"
+        return "Vắng"
     # Buổi chiều
     elif time(12, 50) <= now <= time(13, 30):
-        return "có mặt"
+        return "Có mặt"
     elif time(13, 31) <= now <= time(14, 0):
-        return "trễ"
+        return "Trễ"
     elif time(14, 1) <= now <= time(16, 30):
-        return "vắng"
+        return "Vắng"
     # Buổi tối
     elif time(17, 0) <= now <= time(18, 30):
-        return "có mặt"
+        return "Có mặt"
     elif time(18, 31) <= now <= time(19, 0):
-        return "trễ"
+        return "Trễ"
     elif time(19, 1) <= now <= time(20, 0):
-        return "vắng"
+        return "Vắng"
     else:
-        return "ngoài giờ"
+        return "Ngoài giờ"
 
 def add_diemdanh(mac):
     trangthai = get_trangthai_diemdanh()
