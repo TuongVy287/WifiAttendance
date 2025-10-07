@@ -208,6 +208,10 @@ def delete_thietbi(id):
 @app.route("/caidat", methods=["POST"])
 def add_caidat():
     data = request.json
+
+    # Cập nhật tất cả các bản ghi cũ thành Is_active = False
+    caidat_col.update_many({}, {"$set": {"Is_active": False}})
+
     caidat = {
         "Buoi": data["Buoi"],
         "TD_BatDau": data["TD_BatDau"],
