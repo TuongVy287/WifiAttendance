@@ -219,7 +219,6 @@ def add_caidat():
         "Mail": data.get("Mail"),
         "Is_active": True,
         "TG_DiTre": data.get("TG_DiTre"),
-        "TG_VeSom": data.get("TG_VeSom "),
     }
     caidat_col.insert_one(caidat)
     return jsonify({"message": "Thêm cài đặt thành công!"}), 201
@@ -249,18 +248,67 @@ def delete_caidat(id):
 # ===============================
 # 4. ĐIỂM DANH
 # ===============================
-@app.route("/diemdanh", methods=["POST"])
-def add_diemdanh():
-    data = request.json
-    diemdanh = {
-        "TD_Vao": datetime.now(),
-        "TD_Ra":  datetime.now(),
-        "Buoi": data["Buoi"],
-        "Ten_SinhVien": data["Ten_SinhVien"]
-    }
-    diemdanh_col.insert_one(diemdanh)
-    return jsonify({"message": "Điểm danh thành công!"}), 201
+def xac_dinh_buoi():
+    now = datetime.now().hour
+    if now < 12:
+        return "Sáng"
+    elif now < 18:
+        return "Chiều"
+    else:
+        return "Tối"
 
+@app.route("/diemdanh", methods=["POST"])
+def diemdanh():
+    data = request.json
+    mac = data.get("MAC")
+
+    # ====== 1. Xác định buổi tự động ======
+    buoi = xac_dinh_buoi()
+
+    # ====== 2. Xác định sinh viên theo MAC ======
+    thietbi = thietbi_col.find_one({"MAC": mac})
+    ten_sv = "Khách"
+
+    if thietbi:
+        sinhvien = sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]})
+        if sinhvien:
+            ten_sv = sinhvien["Ten"]
+
+    # ====== 3. Kiểm tra bản ghi trong ngày ======
+    today = datetime.now().date()
+    record = diemdanh_col.find_one({
+        "MAC": mac,
+        "Buoi": buoi,
+        "TD_Vao": {"$gte": datetime(today.year, today.month, today.day)}
+    })
+
+    # ====== 4. Nếu chưa có → tạo mới (chỉ lấy giờ vào đầu tiên) ======
+    if not record:
+        new_record = {
+            "TD_Vao": datetime.now(),
+            "TD_Ra": datetime.now(),
+            "Buoi": buoi,
+            "MAC": mac,
+            "Ten_SinhVien": ten_sv
+        }
+        diemdanh_col.insert_one(new_record)
+        return jsonify({
+            "message": f"Điểm danh thành công vào buổi {buoi}!",
+            "Ten_SinhVien": ten_sv,
+            "Buoi": buoi
+        }), 201
+
+    # ====== 5. Nếu đã có → chỉ cập nhật giờ ra ======
+    else:
+        diemdanh_col.update_one(
+            {"_id": record["_id"]},
+            {"$set": {"TD_Ra": datetime.now()}}
+        )
+        return jsonify({
+            "message": f"Đã cập nhật giờ ra buổi {buoi}!",
+            "Ten_SinhVien": ten_sv,
+            "Buoi": buoi
+        }), 200
 @app.route("/diemdanh", methods=["GET"])
 def get_all_diemdanh():
     result = [convert_id(dd) for dd in diemdanh_col.find()]
