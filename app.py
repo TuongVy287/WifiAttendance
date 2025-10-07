@@ -27,15 +27,32 @@ def convert_id(doc):
 # ===============================
 # 1. SINH VIÊN
 # ===============================
+# ===============================
+# THÊM SINH VIÊN
+# ===============================
 @app.route("/sinhvien", methods=["POST"])
 def add_sinhvien():
     data = request.json
+    ten = data.get("Ten")
+    mssv = data.get("MSSV")
+
+    # Kiểm tra dữ liệu đầu vào
+    if not ten or not mssv:
+        return jsonify({"message": "Vui lòng nhập đầy đủ tên và MSSV!"}), 400
+
+    # Kiểm tra MSSV đã tồn tại hay chưa
+    existing_sinhvien = sinhvien_col.find_one({"MSSV": mssv})
+    if existing_sinhvien:
+        return jsonify({"message": f"MSSV '{mssv}' đã tồn tại, vui lòng nhập MSSV khác!"}), 409
+
+    # Thêm mới nếu MSSV chưa tồn tại
     sinhvien = {
-        "Ten": data["Ten"],
-        "MSSV": data["MSSV"],
+        "Ten": ten,
+        "MSSV": mssv,
         "Is_active": True
     }
     sinhvien_col.insert_one(sinhvien)
+
     return jsonify({"message": "Thêm sinh viên thành công!"}), 201
 
 @app.route("/sinhvien", methods=["GET"])
@@ -66,37 +83,124 @@ def delete_sinhvien(id):
 @app.route("/thietbi", methods=["POST"])
 def add_thietbi():
     data = request.json
+    sinhvien_id = data.get("SinhVien_id")
+    mac = data.get("MAC")
+    ten_thietbi = data.get("Ten_ThietBi")
+
+    if not sinhvien_id or not mac or not ten_thietbi:
+        return jsonify({"message": "Vui lòng nhập đầy đủ SinhVien_id, MAC và Tên thiết bị!"}), 400
+    try:
+        sinhvien_obj_id = ObjectId(sinhvien_id)
+    except:
+        return jsonify({"message": "SinhVien_id không hợp lệ!"}), 400
+
+    
+    sinhvien = sinhvien_col.find_one({"_id": sinhvien_obj_id})
+    if not sinhvien:
+        return jsonify({"message": "Không tồn tại sinh viên với SinhVien_id này, vui lòng nhập lại!"}), 404
+
+   
+    existing_mac = thietbi_col.find_one({"MAC": mac})
+    if existing_mac:
+        return jsonify({"message": f"Địa chỉ MAC '{mac}' đã tồn tại, vui lòng nhập MAC khác!"}), 409
+
+    
+    thietbi_col.update_many(
+        {"SinhVien_id": sinhvien_obj_id},
+        {"$set": {"Is_active": False}}
+    )
+
     thietbi = {
-        "SinhVien_id": data["SinhVien_id"],
-        "MAC": data["MAC"],
+        "SinhVien_id": sinhvien_obj_id,
+        "MAC": mac,
         "TD_Them_ThietBi": datetime.now(),
-        "Ten_ThietBi": data["Ten_ThietBi"],
+        "Ten_ThietBi": ten_thietbi,
         "Is_active": True
     }
     thietbi_col.insert_one(thietbi)
-    return jsonify({"message": "Thêm thiết bị thành công!"}), 201
 
+    return jsonify({"message": "Thêm thiết bị thành công và đã cập nhật trạng thái hoạt động!"}), 201
 @app.route("/thietbi", methods=["GET"])
 def get_all_thietbi():
-    result = [convert_id(tb) for tb in thietbi_col.find()]
+    thietbis = list(thietbi_col.find())
+    result = []
+    for tb in thietbis:
+        result.append({
+            "_id": str(tb["_id"]),
+            "SinhVien_id": str(tb["SinhVien_id"]),
+            "MAC": tb["MAC"],
+            "TD_Them_ThietBi": tb["TD_Them_ThietBi"].strftime("%Y-%m-%d %H:%M:%S"),
+            "Ten_ThietBi": tb["Ten_ThietBi"],
+            "Is_active": tb["Is_active"]
+        })
     return jsonify(result), 200
 
 @app.route("/thietbi/<id>", methods=["GET"])
 def get_thietbi(id):
-    tb = thietbi_col.find_one({"_id": ObjectId(id)})
-    return jsonify(convert_id(tb)) if tb else (jsonify({"error": "Không tìm thấy"}), 404)
+    try:
+        obj_id = ObjectId(id)
+    except:
+        return jsonify({"message": "ID không hợp lệ!"}), 400
 
+    thietbi = thietbi_col.find_one({"_id": obj_id})
+    if not thietbi:
+        return jsonify({"message": "Không tìm thấy thiết bị!"}), 404
+
+    result = {
+        "_id": str(thietbi["_id"]),
+        "SinhVien_id": str(thietbi["SinhVien_id"]),
+        "MAC": thietbi["MAC"],
+        "TD_Them_ThietBi": thietbi["TD_Them_ThietBi"].strftime("%Y-%m-%d %H:%M:%S"),
+        "Ten_ThietBi": thietbi["Ten_ThietBi"],
+        "Is_active": thietbi["Is_active"]
+    }
+    return jsonify(result), 200
 @app.route("/thietbi/<id>", methods=["PUT"])
 def update_thietbi(id):
     data = request.json
-    thietbi_col.update_one({"_id": ObjectId(id)}, {"$set": data})
-    return jsonify({"message": "Cập nhật thành công!"}), 200
+
+    try:
+        thietbi_id = ObjectId(id)
+    except:
+        return jsonify({"message": "ID thiết bị không hợp lệ!"}), 400
+    thietbi = thietbi_col.find_one({"_id": thietbi_id})
+    if not thietbi:
+        return jsonify({"message": "Không tìm thấy thiết bị!"}), 404
+    sinhvien_id = thietbi["SinhVien_id"]
+    if "SinhVien_id" in data:
+        return jsonify({"error": "Không được phép sửa mã sinh viên!"}), 400
+
+    data["TD_Them_ThietBi"] = datetime.now()
+    data["Is_active"] = True
+    thietbi_col.update_many(
+        {"SinhVien_id": sinhvien_id, "_id": {"$ne": thietbi_id}},
+        {"$set": {"Is_active": False}}
+    )
+    thietbi_col.update_one({"_id": thietbi_id}, {"$set": data})
+
+    return jsonify({"message": "Cập nhật thiết bị thành công và đã cập nhật trạng thái hoạt động!"}), 200
 
 @app.route("/thietbi/<id>", methods=["DELETE"])
 def delete_thietbi(id):
-    thietbi_col.delete_one({"_id": ObjectId(id)})
-    return jsonify({"message": "Xóa thành công!"}), 200
+    thietbi = thietbi_col.find_one({"_id": ObjectId(id)})
+    if not thietbi:
+        return jsonify({"error": "Không tìm thấy thiết bị!"}), 404
 
+    sinhvien_id = thietbi["SinhVien_id"]
+    thietbi_col.delete_one({"_id": ObjectId(id)})
+
+    latest_device = thietbi_col.find_one(
+        {"SinhVien_id": sinhvien_id},
+        sort=[("TD_Them_ThietBi", -1)]  # sắp xếp giảm dần theo thời gian
+    )
+
+    if latest_device:
+        thietbi_col.update_one(
+            {"_id": latest_device["_id"]},
+            {"$set": {"Is_active": True}}
+        )
+
+    return jsonify({"message": "Xóa thiết bị thành công!"}), 200
 
 # ===============================
 # 3. CÀI ĐẶT
@@ -181,12 +285,23 @@ def delete_diemdanh(id):
 @app.route("/dangnhap", methods=["POST"])
 def add_user():
     data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"message": "Vui lòng nhập đầy đủ username và password!"}), 400
+
+    existing_user = dangnhap_col.find_one({"username": username})
+    if existing_user:
+        return jsonify({"message": "Username đã tồn tại, vui lòng chọn username khác!"}), 409
+
     user = {
-        "username": data["username"],
-        "password": data["password"],
+        "username": username,
+        "password": password,
         "Is_active": True
     }
     dangnhap_col.insert_one(user)
+
     return jsonify({"message": "Tạo tài khoản thành công!"}), 201
 
 @app.route("/dangnhap", methods=["GET"])
