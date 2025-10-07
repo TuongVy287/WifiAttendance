@@ -77,37 +77,7 @@ def delete_sinhvien(id):
 
 # ===============================
 # 2. THIẾT BỊ
-# ===============================
-@app.route("/caidat", methods=["POST"])
-def add_caidat():
-    data = request.json
-
-    buoi = data.get("Buoi")
-    # Chỉ cập nhật Is_active=False cho các bản ghi cùng buổi
-    caidat_col.update_many({"Buoi": buoi}, {"$set": {"Is_active": False}})
-
-    caidat = {
-        "Buoi": buoi,
-        "TD_BatDau": data.get("TD_BatDau"),
-        "TD_KetThuc": data.get("TD_KetThuc"),
-        "TD_Reset": data.get("TD_Reset"),
-        "TD_Setting": datetime.now(),
-        "Mail": data.get("Mail"),
-        "Is_active": True
-    }
-    caidat_col.insert_one(caidat)
-    return jsonify({"message": "Thêm cài đặt thành công!"}), 201
-
-   
-    existing_mac = thietbi_col.find_one({"MAC": mac})
-    if existing_mac:
-        return jsonify({"message": f"Địa chỉ MAC '{mac}' đã tồn tại, vui lòng nhập MAC khác!"}), 409
-
-    
-    thietbi_col.update_many(
-        {"SinhVien_id": sinhvien_obj_id},
-        {"$set": {"Is_active": False}}
-    )
+...existing code...
 
     thietbi = {
         "SinhVien_id": sinhvien_obj_id,
