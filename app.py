@@ -27,9 +27,7 @@ def convert_id(doc):
 # ===============================
 # 1. SINH VIÊN
 # ===============================
-# ===============================
-# THÊM SINH VIÊN
-# ===============================
+
 @app.route("/sinhvien", methods=["POST"])
 def add_sinhvien():
     data = request.json
