@@ -219,7 +219,7 @@ def add_caidat():
         "Mail": data.get("Mail"),
         "Is_active": True,
         "TG_DiTre": data.get("TG_DiTre"),
-        "TG_VeSom": data.get("TG_VeSom"),
+        "TG_VeSom": data.get("TG_VeSom "),
     }
     caidat_col.insert_one(caidat)
     return jsonify({"message": "Thêm cài đặt thành công!"}), 201
