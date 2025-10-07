@@ -217,7 +217,9 @@ def add_caidat():
         "TD_Reset": data.get("TD_Reset"),
         "TD_Setting": datetime.now(),
         "Mail": data.get("Mail"),
-        "Is_active": True
+        "Is_active": True,
+        "TG_DiTre": data.get("TG_DiTre"),
+        "TG_VeSom": data.get("TG_VeSom"),
     }
     caidat_col.insert_one(caidat)
     return jsonify({"message": "Thêm cài đặt thành công!"}), 201
@@ -252,7 +254,7 @@ def add_diemdanh():
     data = request.json
     diemdanh = {
         "TD_Vao": datetime.now(),
-        "TD_Ra": None,
+        "TD_Ra":  datetime.now(),
         "Buoi": data["Buoi"],
         "Ten_SinhVien": data["Ten_SinhVien"]
     }
