@@ -77,7 +77,36 @@ def delete_sinhvien(id):
 
 # ===============================
 # 2. THIẾT BỊ
-...existing code...
+# ===============================
+@app.route("/thietbi", methods=["POST"])
+def add_thietbi():
+    data = request.json
+    sinhvien_id = data.get("SinhVien_id")
+    mac = data.get("MAC")
+    ten_thietbi = data.get("Ten_ThietBi")
+
+    if not sinhvien_id or not mac or not ten_thietbi:
+        return jsonify({"message": "Vui lòng nhập đầy đủ SinhVien_id, MAC và Tên thiết bị!"}), 400
+    try:
+        sinhvien_obj_id = ObjectId(sinhvien_id)
+    except:
+        return jsonify({"message": "SinhVien_id không hợp lệ!"}), 400
+
+    
+    sinhvien = sinhvien_col.find_one({"_id": sinhvien_obj_id})
+    if not sinhvien:
+        return jsonify({"message": "Không tồn tại sinh viên với SinhVien_id này, vui lòng nhập lại!"}), 404
+
+   
+    existing_mac = thietbi_col.find_one({"MAC": mac})
+    if existing_mac:
+        return jsonify({"message": f"Địa chỉ MAC '{mac}' đã tồn tại, vui lòng nhập MAC khác!"}), 409
+
+    
+    thietbi_col.update_many(
+        {"SinhVien_id": sinhvien_obj_id},
+        {"$set": {"Is_active": False}}
+    )
 
     thietbi = {
         "SinhVien_id": sinhvien_obj_id,
@@ -177,11 +206,6 @@ def delete_thietbi(id):
 @app.route("/caidat", methods=["POST"])
 def add_caidat():
     data = request.json
-
-    buoi = data.get("Buoi")
-    # Chỉ cập nhật Is_active=False cho các bản ghi cùng buổi
-    caidat_col.update_many({"Buoi": buoi}, {"$set": {"Is_active": False}})
-
     caidat = {
         "Buoi": buoi,
         "TD_BatDau": data.get("TD_BatDau"),
