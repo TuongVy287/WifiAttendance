@@ -212,13 +212,14 @@ def add_caidat():
     # Cập nhật tất cả các bản ghi cũ thành Is_active = False
     caidat_col.update_many({}, {"$set": {"Is_active": False}})
 
+    now = datetime.now()
     caidat = {
-        "Buoi": data["Buoi"],
-        "TD_BatDau": data["TD_BatDau"],
-        "TD_KetThuc": data["TD_KetThuc"],
-        "TD_Reset": data["TD_Reset"],
-        "TD_Setting": datetime.now(),
-        "Mail": data["Mail"],
+        "Buoi": data.get("Buoi"),
+        "TD_BatDau": now,
+        "TD_KetThuc": now,
+        "TD_Reset": now,
+        "TD_Setting": now,
+        "Mail": data.get("Mail"),
         "Is_active": True
     }
     caidat_col.insert_one(caidat)
