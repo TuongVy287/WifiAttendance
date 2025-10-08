@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -249,32 +249,58 @@ def delete_caidat(id):
 # 4. ĐIỂM DANH
 # ===============================
 def xac_dinh_buoi():
-    now = datetime.now().hour
-    if now < 12:
+    hour = datetime.now().hour
+    if hour < 12:
         return "Sáng"
-    elif now < 18:
+    elif hour < 18:
         return "Chiều"
     else:
         return "Tối"
 
+# ====== API ĐIỂM DANH ======
 @app.route("/diemdanh", methods=["POST"])
 def diemdanh():
     data = request.json
     mac = data.get("MAC")
-
-    # ====== 1. Xác định buổi tự động ======
-    buoi = xac_dinh_buoi()
-
-    # ====== 2. Xác định sinh viên theo MAC ======
     thietbi = thietbi_col.find_one({"MAC": mac})
-    ten_sv = "Khách"
 
+    if not thietbi:
+        ten_sv = "Khách"
+        return jsonify({"message": "Thiết bị khách - chưa đăng ký trong hệ thống!", "Ten_SinhVien": ten_sv}), 403
+
+    # === 2. KIỂM TRA TRẠNG THÁI THIẾT BỊ ===
+    if not thietbi.get("Is_active", False):
+        ten_sv = "Khách"
+        return jsonify({"message": "Thiết bị đã bị vô hiệu hóa!", "Ten_SinhVien": ten_sv}), 403
+
+    # === 3. LẤY THÔNG TIN SINH VIÊN ===
+    sinhvien = sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]})
+    ten_sv = sinhvien["Ten"] if sinhvien else "Khách"
+    if not mac:
+        return jsonify({"message": "Thiếu địa chỉ MAC!"}), 400
+
+    # 1️⃣ Xác định buổi và lấy cấu hình cài đặt buổi đó
+    buoi = xac_dinh_buoi()
+    caidat = caidat_col.find_one({"Buoi": buoi, "Is_active": True})
+    if not caidat:
+        return jsonify({"message": f"Không có cài đặt cho buổi {buoi}!"}), 404
+
+    # Lấy các mốc thời gian từ cấu hình
+    TD_BatDau = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
+    TD_KetThuc = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
+    TG_DiTre = timedelta(minutes=int(caidat["TG_DiTre"])) if caidat.get("TG_DiTre") else timedelta(minutes=0)
+
+    now = datetime.now()
+
+    # 2️⃣ Xác định sinh viên từ MAC
+    ten_sv = "Khách"
+    thietbi = thietbi_col.find_one({"MAC": mac})
     if thietbi:
         sinhvien = sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]})
         if sinhvien:
             ten_sv = sinhvien["Ten"]
 
-    # ====== 3. Kiểm tra bản ghi trong ngày ======
+    # 3️⃣ Kiểm tra có bản ghi điểm danh buổi này chưa
     today = datetime.now().date()
     record = diemdanh_col.find_one({
         "MAC": mac,
@@ -282,31 +308,54 @@ def diemdanh():
         "TD_Vao": {"$gte": datetime(today.year, today.month, today.day)}
     })
 
-    # ====== 4. Nếu chưa có → tạo mới (chỉ lấy giờ vào đầu tiên) ======
+    # 4️⃣ Nếu chưa có → TẠO MỚI (ghi nhận giờ vào)
     if not record:
+        TD_Vao = now
+        TD_Ra = now
+
+        # --- Xác định trạng thái vào ---
+        if TD_Vao <= TD_BatDau:
+            trangthai = "Có mặt"
+        elif TD_Vao <= (TD_BatDau + TG_DiTre):
+            trangthai = "Đi trễ"
+        else:
+            trangthai = "Vắng"
+
         new_record = {
-            "TD_Vao": datetime.now(),
-            "TD_Ra": datetime.now(),
+            "TD_Vao": TD_Vao,
+            "TD_Ra": TD_Ra,
             "Buoi": buoi,
             "MAC": mac,
-            "Ten_SinhVien": ten_sv
+            "Ten_SinhVien": ten_sv,
+            "TrangThai": trangthai
         }
         diemdanh_col.insert_one(new_record)
+
         return jsonify({
-            "message": f"Điểm danh thành công vào buổi {buoi}!",
+            
             "Ten_SinhVien": ten_sv,
+            "TrangThai": trangthai,
             "Buoi": buoi
         }), 201
 
-    # ====== 5. Nếu đã có → chỉ cập nhật giờ ra ======
+    # 5️⃣ Nếu đã có → CẬP NHẬT GIỜ RA
     else:
+        TD_Ra = now
+        trangthai = record["TrangThai"]
+
+        # Nếu không vắng → kiểm tra về sớm
+        if trangthai != "Vắng" and TD_Ra < TD_KetThuc:
+            trangthai += " - Về sớm"
+
         diemdanh_col.update_one(
             {"_id": record["_id"]},
-            {"$set": {"TD_Ra": datetime.now()}}
+            {"$set": {"TD_Ra": TD_Ra, "TrangThai": trangthai}}
         )
+
         return jsonify({
-            "message": f"Đã cập nhật giờ ra buổi {buoi}!",
+            "message": f"Đã cập nhật giờ ra (buổi {buoi})!",
             "Ten_SinhVien": ten_sv,
+            "TrangThai": trangthai,
             "Buoi": buoi
         }), 200
 @app.route("/diemdanh", methods=["GET"])
