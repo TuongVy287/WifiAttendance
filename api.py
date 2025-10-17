@@ -55,7 +55,6 @@ async def delete_sinhvien(request):
     await delete_one(sinhvien_col, id)
     return web.json_response({"message": "Xóa thành công"})
 
-
 # ===============================
 # 🔹 2. THIẾT BỊ
 # ===============================
@@ -82,7 +81,6 @@ async def add_thietbi(request):
     if existing_mac:
         return web.json_response({"message": f"MAC '{mac}' đã tồn tại!"}, status=409)
 
-    # Tắt các thiết bị cũ
     await thietbi_col.update_many({"SinhVien_id": sv_obj_id}, {"$set": {"Is_active": False}})
 
     new_tb = {
@@ -94,7 +92,6 @@ async def add_thietbi(request):
     }
     await insert_one(thietbi_col, new_tb)
     return web.json_response({"message": "Thêm thiết bị thành công!"}, status=201)
-
 
 @routes.get("/thietbi")
 async def get_all_thietbi(request):
@@ -108,7 +105,6 @@ async def get_thietbi(request):
     if tb:
         return web.json_response(tb)
     return web.json_response({"message": "Không tìm thấy thiết bị!"}, status=404)
-
 
 @routes.put("/thietbi/{id}")
 async def update_thietbi(request):
@@ -132,7 +128,6 @@ async def update_thietbi(request):
     await update_one(thietbi_col, id, data)
     return web.json_response({"message": "Cập nhật thành công!"})
 
-
 @routes.delete("/thietbi/{id}")
 async def delete_thietbi(request):
     id = request.match_info["id"]
@@ -150,7 +145,6 @@ async def delete_thietbi(request):
     return web.json_response({"message": "Xóa thiết bị thành công!"})
 
 
-
 # ===============================
 # 🔹 3. CÀI ĐẶT
 # ===============================
@@ -161,7 +155,6 @@ async def add_caidat(request):
     if not buoi:
         return web.json_response({"message": "Thiếu thông tin Buổi!"}, status=400)
 
-    # Tắt cấu hình cũ cùng buổi
     await caidat_col.update_many({"Buoi": buoi}, {"$set": {"Is_active": False}})
 
     new_cd = {
@@ -177,12 +170,10 @@ async def add_caidat(request):
     await insert_one(caidat_col, new_cd)
     return web.json_response({"message": "Thêm cài đặt thành công!"}, status=201)
 
-
 @routes.get("/caidat")
 async def get_all_caidat(request):
     data = await get_all(caidat_col)
     return web.json_response(data)
-
 
 @routes.get("/caidat/{id}")
 async def get_caidat(request):
@@ -192,7 +183,6 @@ async def get_caidat(request):
         return web.json_response(cd)
     return web.json_response({"message": "Không tìm thấy cài đặt!"}, status=404)
 
-
 @routes.put("/caidat/{id}")
 async def update_caidat(request):
     id = request.match_info["id"]
@@ -200,15 +190,15 @@ async def update_caidat(request):
     await update_one(caidat_col, id, data)
     return web.json_response({"message": "Cập nhật thành công!"})
 
-
 @routes.delete("/caidat/{id}")
 async def delete_caidat(request):
     id = request.match_info["id"]
     await delete_one(caidat_col, id)
     return web.json_response({"message": "Xóa thành công!"})
 
+
 # ===============================
-# 🔹 4. ĐIỂM DANH
+# 🔹 4. ĐIỂM DANH (ĐÃ SỬA LOGIC)
 # ===============================
 def xac_dinh_buoi():
     hour = datetime.now().hour
@@ -219,6 +209,7 @@ def xac_dinh_buoi():
     else:
         return "Tối"
 
+
 @routes.post("/diemdanh")
 async def diemdanh(request):
     data = await request.json()
@@ -227,113 +218,126 @@ async def diemdanh(request):
     if not mac:
         return web.json_response({"message": "Thiếu địa chỉ MAC!"}, status=400)
 
-    # Lấy thiết bị theo MAC
     thietbi = await thietbi_col.find_one({"MAC": mac})
-    if not thietbi:
-        # Thiết bị khách (chưa đăng ký)
-        return web.json_response({"message": "Thiết bị khách - chưa đăng ký trong hệ thống!", "Ten_SinhVien": "Khách"}, status=403)
+    if not thietbi or not thietbi.get("Is_active", False):
+        return web.json_response({
+            "message": "Thiết bị không hợp lệ hoặc đã bị vô hiệu hóa!",
+            "Ten_SinhVien": "Khách"
+        }, status=403)
 
-    # Kiểm tra trạng thái thiết bị
-    if not thietbi.get("Is_active", False):
-        return web.json_response({"message": "Thiết bị đã bị vô hiệu hóa!"}, status=403)
-
-    # Lấy thông tin sinh viên
     sinhvien = await sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]})
     ten_sv = sinhvien["Ten"] if sinhvien else "Khách"
 
-    # Xác định buổi hiện tại và lấy cấu hình đang active cho buổi đó
     buoi = xac_dinh_buoi()
     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
     if not caidat:
         return web.json_response({"message": f"Không có cài đặt cho buổi {buoi}!"}, status=404)
 
-    # Chuyển các mốc thời gian từ cấu hình
     try:
         TD_BatDau = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
         TD_KetThuc = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
     except Exception:
-        # Nếu dữ liệu thời gian không hợp lệ
-        return web.json_response({"message": "Dữ liệu thời gian trong cài đặt không hợp lệ!"}, status=500)
+        return web.json_response({"message": "Dữ liệu thời gian không hợp lệ!"}, status=500)
 
-    TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0))) if caidat.get("TG_DiTre") is not None else timedelta(minutes=0)
+    TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0))) if caidat.get("TG_DiTre") else timedelta(minutes=0)
     now = datetime.now()
-
-    # Tìm bản ghi điểm danh cùng MAC + Buổi trong ngày hôm nay (TD_Vao >= ngày hôm nay 00:00)
     today = datetime.now().date()
     start_of_today = datetime(today.year, today.month, today.day)
+
     record = await diemdanh_col.find_one({
         "MAC": mac,
         "Buoi": buoi,
         "TD_Vao": {"$gte": start_of_today}
     })
-    # Nếu chưa có bản ghi → tạo mới (ghi giờ vào + giờ ra = giờ hiện tại)
+
+    # TRƯỜNG HỢP 1: CHƯA CÓ BẢN GHI (CHECK-IN LẦN ĐẦU)
     if not record:
-        TD_Vao = now
-        TD_Ra = now
-        if TD_Vao <= TD_BatDau:
-            trangthai = "Có mặt"
-        elif TD_Vao <= (TD_BatDau + TG_DiTre):
-            trangthai = "Đi trễ"
+        trangthai_checkin = ""
+        if now <= TD_BatDau:
+            trangthai_checkin = "Có mặt"
+        elif now <= (TD_BatDau + TG_DiTre):
+            trangthai_checkin = "Đi trễ"
         else:
-            trangthai = "Vắng"
+            trangthai_checkin = "Vắng"
+
         new_record = {
-            "TD_Vao": TD_Vao,
-            "TD_Ra": TD_Ra,
+            "TD_Vao": now,
+            "TD_Ra": now,
             "Buoi": buoi,
             "MAC": mac,
             "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai
+            "TrangThai": trangthai_checkin, # Trạng thái ban đầu chỉ là Check-in status
         }
         await insert_one(diemdanh_col, new_record)
         return web.json_response({
             "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai,
-            "Buoi": buoi
+            "TrangThai": trangthai_checkin, # Trả về trạng thái Check-in
+            "Buoi": buoi,
+            "TD_Vao": now.strftime("%H:%M:%S"),
+            "TD_Ra": now.strftime("%H:%M:%S"),
+            "message": "Điểm danh lần đầu thành công!"
         }, status=201)
 
-    # Nếu đã có bản ghi → cập nhật giờ ra
+    # TRƯỜNG HỢP 2: ĐÃ CÓ BẢN GHI (CHECK-OUT)
     else:
-        TD_Ra = now
-        trangthai = record.get("TrangThai", "")
-        # Nếu không vắng → kiểm tra về sớm
-        if trangthai != "Vắng" and TD_Ra < TD_KetThuc:
-            trangthai = f"{trangthai} - Về sớm"
+        # Tách trạng thái Check-in cũ. Nếu là chuỗi kết hợp, lấy phần đầu. Nếu là chuỗi đơn, coi là trạng thái Check-in.
+        trangthai_hien_tai = record.get("TrangThai", "")
+        if " - " in trangthai_hien_tai:
+             # Nếu đã là dạng "Check-in - Check-out", ta chỉ lấy phần Check-in
+            trangthai_checkin_truoc = trangthai_hien_tai.split(" - ")[0]
+            trangthai_checkout_hien_tai = trangthai_hien_tai.split(" - ")[1]
+        else:
+            # Nếu chỉ là dạng đơn (lần check-in đầu tiên), coi đó là trạng thái Check-in
+            trangthai_checkin_truoc = trangthai_hien_tai
+            trangthai_checkout_hien_tai = trangthai_hien_tai
+
+        # Mặc định trạng thái Check-out mới là trạng thái Check-in (nếu không về sớm)
+        trangthai_checkout_moi = trangthai_checkin_truoc 
+
+        # Điều kiện để gán trạng thái "Về sớm" cho Check-out:
+        # 1. Thời gian hiện tại phải sớm hơn giờ kết thúc.
+        # 2. Trạng thái Check-out hiện tại KHÔNG PHẢI là "Về sớm" hoặc "Vắng".
+        #    (Trạng thái "Vắng" khi check-in sẽ được coi là Vắng luôn, không cập nhật về sớm)
+        is_first_time_early_leave = (
+            now < TD_KetThuc and
+            trangthai_checkout_hien_tai not in ["Vắng", "Về sớm"] 
+        )
+
+        update_fields = {"TD_Ra": now}
+        message = f"Đã cập nhật giờ ra (buổi {buoi})!"
+
+        if is_first_time_early_leave:
+            # Lần đầu check-out sớm và chưa bị gán Vắng
+            trangthai_checkout_moi = "Về sớm"
+            message = "Sinh viên đã về sớm!"
+        elif trangthai_checkout_hien_tai == "Vắng":
+            # Nếu Check-in Vắng, Check-out cũng là Vắng (không thay đổi)
+            trangthai_checkout_moi = "Vắng"
+        elif trangthai_checkout_hien_tai == "Về sớm":
+            # Nếu đã bị gán Về sớm ở lần check-out trước, giữ nguyên Về sớm
+            trangthai_checkout_moi = "Về sớm"
+        else:
+             # Nếu Check-out sau giờ kết thúc, trạng thái Check-out là trạng thái Check-in
+             trangthai_checkout_moi = trangthai_checkin_truoc
+        
+        # Cập nhật cột TrangThai thành chuỗi kết hợp
+        trangthai_ket_hop = f"{trangthai_checkin_truoc} - {trangthai_checkout_moi}"
+        update_fields["TrangThai"] = trangthai_ket_hop
+        
         await diemdanh_col.update_one(
             {"_id": record["_id"]},
-            {"$set": {"TD_Ra": TD_Ra, "TrangThai": trangthai}}
+            {"$set": update_fields}
         )
+        
         return web.json_response({
-            "message": f"Đã cập nhật giờ ra (buổi {buoi})!",
             "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai,
-            "Buoi": buoi
+            "TrangThai": trangthai_ket_hop, # Trả về trạng thái kết hợp
+            "Buoi": buoi,
+            "TD_Vao": record.get("TD_Vao").strftime("%H:%M:%S"),
+            "TD_Ra": now.strftime("%H:%M:%S"),
+            "message": message
         }, status=200)
 
-@routes.get("/diemdanh")
-async def get_all_diemdanh(request):
-    data = await get_all(diemdanh_col)
-    return web.json_response(data)
-
-@routes.get("/diemdanh/{id}")
-async def get_diemdanh(request):
-    id = request.match_info["id"]
-    dd = await get_by_id(diemdanh_col, id)
-    if dd:
-        return web.json_response(dd)
-    return web.json_response({"error": "Không tìm thấy"}, status=404)
-
-@routes.put("/diemdanh/{id}")
-async def update_diemdanh(request):
-    id = request.match_info["id"]
-    data = await request.json()
-    await update_one(diemdanh_col, id, data)
-    return web.json_response({"message": "Cập nhật thành công!"})
-
-@routes.delete("/diemdanh/{id}")
-async def delete_diemdanh(request):
-    id = request.match_info["id"]
-    await delete_one(diemdanh_col, id)
-    return web.json_response({"message": "Xóa thành công!"})
 
 # ===============================
 # 🔹 5. ĐĂNG NHẬP
@@ -351,17 +355,15 @@ async def add_user(request):
     if exist:
         return web.json_response({"message": "Username đã tồn tại!"}, status=409)
 
-    user = {
-        "username": username,
-        "password": password,
-        "Is_active": True
-    }
+    user = {"username": username, "password": password, "Is_active": True}
     await insert_one(dangnhap_col, user)
     return web.json_response({"message": "Tạo tài khoản thành công!"}, status=201)
+
 @routes.get("/dangnhap")
 async def get_all_user(request):
     users = await get_all(dangnhap_col)
     return web.json_response(users)
+
 @routes.get("/dangnhap/{id}")
 async def get_user(request):
     id = request.match_info["id"]
@@ -369,12 +371,14 @@ async def get_user(request):
     if user:
         return web.json_response(user)
     return web.json_response({"message": "Không tìm thấy người dùng!"}, status=404)
+
 @routes.put("/dangnhap/{id}")
 async def update_user(request):
     id = request.match_info["id"]
     data = await request.json()
     await update_one(dangnhap_col, id, data)
     return web.json_response({"message": "Cập nhật thành công!"})
+
 @routes.delete("/dangnhap/{id}")
 async def delete_user(request):
     id = request.match_info["id"]
