@@ -208,7 +208,32 @@ def xac_dinh_buoi():
         return "Chiều"
     else:
         return "Tối"
+    
+@routes.get("/diemdanh")
+async def get_all_diemdanh(request):
+    data = await get_all(diemdanh_col)
+    return web.json_response(data)
 
+@routes.get("/diemdanh/{id}")
+async def get_diemdanh(request):
+    id = request.match_info["id"]
+    dd = await get_by_id(diemdanh_col, id)
+    if dd:
+        return web.json_response(dd)
+    return web.json_response({"error": "Không tìm thấy"}, status=404)
+
+@routes.put("/diemdanh/{id}")
+async def update_diemdanh(request):
+    id = request.match_info["id"]
+    data = await request.json()
+    await update_one(diemdanh_col, id, data)
+    return web.json_response({"message": "Cập nhật thành công!"})
+
+@routes.delete("/diemdanh/{id}")
+async def delete_diemdanh(request):
+    id = request.match_info["id"]
+    await delete_one(diemdanh_col, id)
+    return web.json_response({"message": "Xóa thành công!"})
 
 @routes.post("/diemdanh")
 async def diemdanh(request):
@@ -329,6 +354,7 @@ async def diemdanh(request):
             {"$set": update_fields}
         )
         
+        
         return web.json_response({
             "Ten_SinhVien": ten_sv,
             "TrangThai": trangthai_ket_hop, # Trả về trạng thái kết hợp
@@ -337,6 +363,7 @@ async def diemdanh(request):
             "TD_Ra": now.strftime("%H:%M:%S"),
             "message": message
         }, status=200)
+    
 
 
 # ===============================
