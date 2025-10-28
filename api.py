@@ -115,8 +115,8 @@ async def update_thietbi(request):
     if not tb:
         return web.json_response({"message": "Không tìm thấy thiết bị!"}, status=404)
 
-    if "SinhVien_id" in data:
-        return web.json_response({"message": "Không được phép thay đổi SinhVien_id!"}, status=400)
+    # if "SinhVien_id" in data:
+    #     return web.json_response({"message": "Không được phép thay đổi SinhVien_id!"}, status=400)
 
     sinhvien_id = tb["SinhVien_id"]
     await thietbi_col.update_many({"SinhVien_id": sinhvien_id, "_id": {"$ne": ObjectId(id)}},
