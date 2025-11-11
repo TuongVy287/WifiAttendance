@@ -244,7 +244,7 @@ async def diemdanh(request):
         return web.json_response({"message": "Thiếu địa chỉ MAC!"}, status=400)
 
     thietbi = await thietbi_col.find_one({"MAC": mac})
-    if not thietbi or not thietbi.get("Is_active", False):
+    if not thietbi :
         return web.json_response({
             "message": "Thiết bị không hợp lệ hoặc đã bị vô hiệu hóa!",
             "Ten_SinhVien": "Khách"

@@ -1,4 +1,3 @@
-<!-- app.html: File HTML duy nhất gộp tất cả 5 trang (Đăng nhập, Dashboard, Sinh viên, Thiết bị, Điểm danh, Cài đặt) thành SPA -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -7,107 +6,32 @@
     <title>WiFi Attendance</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Ghi chú: CSS chung cho toàn bộ ứng dụng SPA, tạo giao diện chuyên nghiệp, bắt mắt với chủ đề WiFi */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        /* Ghi chú: CSS cho sidebar navigation chuyên nghiệp */
-        .sidebar {
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            position: fixed;
-            width: 250px;
-            z-index: 1000;
-        }
-        .nav-link {
-            color: white !important;
-        }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        .main-content {
-            margin-left: 250px;
-            padding: 2rem;
-        }
-        /* Ghi chú: CSS cho các trang ẩn/hiện trong SPA */
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
-        }
-        .welcome-card {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        .form-add {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .table-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .mac-col {
-            font-family: monospace;
-            font-weight: bold;
-            color: #667eea;
-        }
-        /* Ghi chú: CSS cho trạng thái điểm danh */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); height: 100vh; position: fixed; width: 250px; z-index: 1000; }
+        .nav-link { color: white !important; }
+        .nav-link:hover, .nav-link.active { background: rgba(255, 255, 255, 0.2); }
+        .main-content { margin-left: 250px; padding: 2rem; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .welcome-card, .form-add, .table-container { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .mac-col { font-family: monospace; font-weight: bold; color: #667eea; }
         .status-co-mat { background-color: #d4edda; color: #155724; }
         .status-vang { background-color: #fff3cd; color: #856404; }
         .status-di-tre, .status-ve-som { background-color: #f8d7da; color: #721c24; }
-        /* Ghi chú: CSS cho trang đăng nhập */
-        .login-container {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            width: 100%;
-            max-width: 400px;
-        }
-        .wifi-icon {
-            font-size: 3rem;
-            color: #667eea;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        /* Ghi chú: Responsive cho mobile */
-        @media (max-width: 768px) {
-            .sidebar { width: 100%; height: auto; position: relative; }
-            .main-content { margin-left: 0; }
-        }
+        .login-container { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; width: 100%; max-width: 400px; }
+        .wifi-icon { font-size: 3rem; color: #667eea; text-align: center; margin-bottom: 1rem; }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-left: 0; } }
     </style>
 </head>
 <body>
-    <!-- Ghi chú: Trang đăng nhập (hiển thị đầu tiên) -->
+    <!-- Trang đăng nhập -->
     <div id="loginPage" class="page active">
         <div class="login-container">
             <div class="login-card">
-                <div class="wifi-icon">📶</div> <!-- Ghi chú: Icon WiFi tượng trưng cho đề tài điểm danh qua WiFi -->
+                <div class="wifi-icon">WiFi</div>
                 <h2 class="text-center mb-4">WiFi Attendance</h2>
                 <form id="loginForm">
                     <div class="mb-3">
@@ -125,13 +49,10 @@
         </div>
     </div>
 
-    <!-- Ghi chú: Nội dung chính sau đăng nhập (ẩn ban đầu) -->
+    <!-- Nội dung chính -->
     <div id="mainApp" style="display: none;">
-        <!-- Sidebar chung -->
         <div class="sidebar">
-            <div class="p-3 text-white">
-                <h4>📶 WiFi Attendance</h4>
-            </div>
+            <div class="p-3 text-white"><h4>WiFi Attendance</h4></div>
             <ul class="nav flex-column">
                 <li class="nav-item"><a class="nav-link active" href="#" onclick="showPage('dashboard')">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('sinhvien')">Danh sách Sinh viên</a></li>
@@ -142,46 +63,24 @@
             </ul>
         </div>
 
-        <!-- Trang Dashboard -->
+        <!-- Dashboard -->
         <div id="dashboardPage" class="page">
             <div class="main-content">
                 <div class="welcome-card">
                     <h2>Chào mừng đến với Hệ thống Điểm danh WiFi</h2>
                     <p>Quản lý điểm danh sinh viên qua kết nối WiFi một cách tự động và chính xác.</p>
-                    <!-- Ghi chú: Thống kê load từ API qua loadDashboardStats() -->
                     <div class="row mt-4" id="statsRow">
-                        <div class="col-md-3">
-                            <div class="card text-center p-3">
-                                <h5 id="svCount">0</h5>
-                                <p>Sinh viên</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center p-3">
-                                <h5 id="tbCount">0</h5>
-                                <p>Thiết bị</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center p-3">
-                                <h5 id="attendanceRate">0%</h5>
-                                <p>Tỷ lệ Có mặt</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center p-3">
-                                <h5 id="currentSession">Sáng</h5>
-                                <p>Buổi Hiện tại</p>
-                            </div>
-                        </div>
+                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="svCount">0</h5><p>Sinh viên</p></div></div>
+                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="tbCount">0</h5><p>Thiết bị</p></div></div>
+                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="attendanceRate">0%</h5><p>Tỷ lệ Có mặt</p></div></div>
+                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="currentSession">Sáng</h5><p>Buổi Hiện tại</p></div></div>
                     </div>
-                    <!-- Ghi chú: Thông báo trạng thái scan từ backend nếu có endpoint, ở đây giả lập -->
                     <div id="scanStatus" class="mt-3 alert alert-info" style="display: none;">Quét WiFi đang hoạt động...</div>
                 </div>
             </div>
         </div>
 
-        <!-- Trang Sinh viên -->
+        <!-- Sinh viên -->
         <div id="sinhvienPage" class="page">
             <div class="main-content">
                 <h2>Danh sách Sinh viên</h2>
@@ -190,14 +89,8 @@
                     <form id="addSinhVienForm">
                         <input type="hidden" id="editSvId">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label>Tên</label>
-                                <input type="text" class="form-control" id="tenSV" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label>MSSV</label>
-                                <input type="text" class="form-control" id="mssvSV" required>
-                            </div>
+                            <div class="col-md-6 mb-3"><label>Tên</label><input type="text" class="form-control" id="tenSV" required></div>
+                            <div class="col-md-6 mb-3"><label>MSSV</label><input type="text" class="form-control" id="mssvSV" required></div>
                         </div>
                         <button type="submit" class="btn btn-success">Thêm</button>
                         <button type="button" class="btn btn-secondary ms-2" onclick="resetSvForm()">Hủy</button>
@@ -205,22 +98,14 @@
                 </div>
                 <div class="table-container">
                     <table class="table table-striped" id="sinhVienTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Tên</th>
-                                <th>MSSV</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>ID</th><th>Tên</th><th>MSSV</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Trang Thiết bị -->
+        <!-- Thiết bị -->
         <div id="thietbiPage" class="page">
             <div class="main-content">
                 <h2>Danh sách Thiết bị</h2>
@@ -231,7 +116,9 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label>Sinh viên ID</label>
-                                <input type="text" class="form-control" id="svIdTB" required>
+                                <select class="form-control" id="svIdTB" required>
+                                    <option value="">-- Chọn Sinh viên --</option>
+                                </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label>MAC</label>
@@ -248,34 +135,32 @@
                 </div>
                 <div class="table-container">
                     <table class="table table-striped" id="thietBiTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Sinh viên ID</th>
-                                <th>MAC</th>
-                                <th>Tên Thiết bị</th>
-                                <th>Thời gian Thêm</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>ID</th><th>Sinh viên ID</th><th>MAC</th><th>Tên Thiết bị</th><th>Thời gian Thêm</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Trang Điểm danh -->
+        <!-- Điểm danh -->
         <div id="diemdanhPage" class="page">
             <div class="main-content">
                 <h2>Điểm danh</h2>
                 <div class="form-add">
                     <h5>Điểm danh Thủ công (Check-in/Check-out)</h5>
-                    <p class="text-muted small">Nhập MAC để ghi nhận điểm danh. Lần đầu: Check-in, lần sau: Check-out và cập nhật trạng thái.</p>
+                    <p class="text-muted small">Chọn sinh viên → MAC tự động → Ghi nhận điểm danh.</p>
                     <form id="diemDanhForm">
-                        <div class="mb-3">
-                            <label>MAC</label>
-                            <input type="text" class="form-control" id="macDD" placeholder="Ví dụ: AA:BB:CC:DD:EE:FF" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Chọn Sinh viên</label>
+                                <select class="form-control" id="svSelectDD" required>
+                                    <option value="">-- Chọn Sinh viên --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>MAC (Tự động)</label>
+                                <input type="text" class="form-control" id="macDD" readonly placeholder="MAC sẽ hiển thị khi chọn SV">
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Ghi nhận Điểm danh</button>
                     </form>
@@ -283,36 +168,23 @@
                 </div>
                 <div class="table-container">
                     <table class="table table-striped" id="diemDanhTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Tên SV</th>
-                                <th>MAC</th>
-                                <th>Buổi</th>
-                                <th>Thời gian Vào</th>
-                                <th>Thời gian Ra</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>ID</th><th>Tên SV</th><th>MAC</th><th>Buổi</th><th>Thời gian Vào</th><th>Thời gian Ra</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Trang Cài đặt -->
+        <!-- Cài đặt -->
         <div id="caidatPage" class="page">
             <div class="main-content">
                 <h2>Cài đặt Buổi Học</h2>
                 <div class="form-add">
                     <h5>Thêm/Sửa Cài đặt</h5>
-                    <p class="text-muted small">Cấu hình thời gian cho từng buổi để hệ thống tự động xác định trạng thái điểm danh.</p>
                     <form id="addCaiDatForm">
                         <input type="hidden" id="editCdId">
                         <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label>Buổi</label>
+                            <div class="col-md-3 mb-3"><label>Buổi</label>
                                 <select class="form-control" id="buoiCD" required>
                                     <option value="">Chọn buổi</option>
                                     <option value="Sáng">Sáng</option>
@@ -320,28 +192,13 @@
                                     <option value="Tối">Tối</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <label>Thời gian Bắt đầu (HH:MM)</label>
-                                <input type="time" class="form-control" id="tdBatDau" required>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label>Thời gian Kết thúc (HH:MM)</label>
-                                <input type="time" class="form-control" id="tdKetThuc" required>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label>Thời gian Reset (HH:MM)</label>
-                                <input type="time" class="form-control" id="tdReset">
-                            </div>
+                            <div class="col-md-3 mb-3"><label>Thời gian Bắt đầu</label><input type="time" class="form-control" id="tdBatDau" required></div>
+                            <div class="col-md-3 mb-3"><label>Thời gian Kết thúc</label><input type="time" class="form-control" id="tdKetThuc" required></div>
+                            <div class="col-md-3 mb-3"><label>Thời gian Reset</label><input type="time" class="form-control" id="tdReset"></div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label>Email Thông báo</label>
-                                <input type="email" class="form-control" id="mailCD" placeholder="email@domain.com">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label>Thời gian Đi trễ (phút)</label>
-                                <input type="number" class="form-control" id="tgDiTre" value="0" min="0">
-                            </div>
+                            <div class="col-md-6 mb-3"><label>Email</label><input type="email" class="form-control" id="mailCD"></div>
+                            <div class="col-md-6 mb-3"><label>Đi trễ (phút)</label><input type="number" class="form-control" id="tgDiTre" min="0" value="0"></div>
                         </div>
                         <button type="submit" class="btn btn-success">Thêm</button>
                         <button type="button" class="btn btn-secondary ms-2" onclick="resetCdForm()">Hủy</button>
@@ -349,20 +206,7 @@
                 </div>
                 <div class="table-container">
                     <table class="table table-striped" id="caiDatTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Buổi</th>
-                                <th>TD Bắt đầu</th>
-                                <th>TD Kết thúc</th>
-                                <th>TD Reset</th>
-                                <th>Email</th>
-                                <th>TG Đi trễ</th>
-                                <th>Thời gian Setting</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>ID</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Reset</th><th>Email</th><th>Đi trễ</th><th>Thời gian</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -370,42 +214,29 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Ghi chú: JavaScript chung cho SPA: show/hide pages và ghép nối API đầy đủ
-        let refreshInterval; // Ghi chú: Interval để auto-refresh dữ liệu điểm danh (tương ứng scan interval 10s ở backend)
+        // ========== BIẾN TOÀN CỤC ==========
+        let mapSinhVienToMac = {};
 
-        function showPage(pageName) {
-            // Ẩn tất cả pages
+        // ========== SHOW PAGE ==========
+        window.showPage = function(pageName) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            // Hiển thị page tương ứng
-            document.getElementById(pageName + 'Page').classList.add('active');
-            // Cập nhật active nav
-            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            event.target.classList.add('active');
-            // Load data nếu cần (ghép nối API)
+            const page = document.getElementById(pageName + 'Page');
+            if (page) page.classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(l => {
+                l.classList.remove('active');
+                if (l.getAttribute('onclick')?.includes(pageName)) l.classList.add('active');
+            });
+
             if (pageName === 'dashboard') loadDashboardStats();
             else if (pageName === 'sinhvien') loadSinhVien();
-            else if (pageName === 'thietbi') loadThietBi();
-            else if (pageName === 'diemdanh') {
-                loadDiemDanh();
-                startRefreshDiemDanh(); // Ghi chú: Bắt đầu auto-refresh khi vào trang điểm danh để theo dõi scan tự động
-            } else if (pageName === 'caidat') loadCaiDat();
-        }
+            else if (pageName === 'thietbi') { loadThietBi(); loadSinhVienForDropdown(); }
+            else if (pageName === 'diemdanh') { loadDiemDanh(); loadSinhVienForDiemDanh(); }
+            else if (pageName === 'caidat') loadCaiDat();
+        };
 
-        function startRefreshDiemDanh() {
-            // Ghi chú: Dừng interval cũ nếu có, bắt đầu mới mỗi 10s (khớp SCAN_INTERVAL ở backend)
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(loadDiemDanh, 10000);
-            // Load ngay lập tức
-            loadDiemDanh();
-        }
-
-        function stopRefreshDiemDanh() {
-            if (refreshInterval) clearInterval(refreshInterval);
-        }
-
-        // Ghi chú: Xử lý đăng nhập (sử dụng POST /dangnhap để xác thực)
+        // ========== ĐĂNG NHẬP ==========
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -422,7 +253,6 @@
 
                 if (response.ok) {
                     messageDiv.innerHTML = '<div class="alert alert-success">Đăng nhập thành công! Đang chuyển hướng...</div>';
-                    // Ghi chú: Lưu thông tin user nếu cần (không thay đổi backend)
                     localStorage.setItem('loggedIn', 'true');
                     setTimeout(() => {
                         document.getElementById('loginPage').classList.remove('active');
@@ -438,10 +268,8 @@
             }
         });
 
-        // Ghi chú: Hàm đăng xuất
         function logout() {
             localStorage.removeItem('loggedIn');
-            stopRefreshDiemDanh();
             document.getElementById('mainApp').style.display = 'none';
             document.getElementById('loginPage').style.display = 'block';
             document.getElementById('loginPage').classList.add('active');
@@ -449,95 +277,65 @@
             document.getElementById('loginMessage').innerHTML = '';
         }
 
-        // Ghi chú: Load stats cho Dashboard (tính từ API data, không cần endpoint mới)
+        // ========== DASHBOARD ==========
         async function loadDashboardStats() {
             try {
-                // Load sinhvien
-                const svRes = await fetch('http://localhost:5000/sinhvien');
-                const svData = await svRes.json();
-                document.getElementById('svCount').textContent = svData.length;
-
-                // Load thietbi
-                const tbRes = await fetch('http://localhost:5000/thietbi');
-                const tbData = await tbRes.json();
-                document.getElementById('tbCount').textContent = tbData.length;
-
-                // Load diemdanh hôm nay để tính tỷ lệ
-                const ddRes = await fetch('http://localhost:5000/diemdanh');
-                const ddData = await ddRes.json();
+                const [svRes, tbRes, ddRes] = await Promise.all([
+                    fetch('http://localhost:5000/sinhvien'),
+                    fetch('http://localhost:5000/thietbi'),
+                    fetch('http://localhost:5000/diemdanh')
+                ]);
+                const sv = await svRes.json();
+                const tb = await tbRes.json();
+                const dd = await ddRes.json();
+                document.getElementById('svCount').textContent = sv.length;
+                document.getElementById('tbCount').textContent = tb.length;
                 const today = new Date().toISOString().split('T')[0];
-                const todayRecords = ddData.filter(dd => dd.Ngay === today);
-                const present = todayRecords.filter(dd => dd.TrangThai.includes('Có mặt')).length;
-                const totalSv = svData.length;
-                const rate = totalSv > 0 ? Math.round((present / totalSv) * 100) : 0;
+                const todayDD = dd.filter(d => d.Ngay === today);
+                const coMat = todayDD.filter(d => d.TrangThai.includes('Có mặt')).length;
+                const rate = todayDD.length > 0 ? Math.round((coMat / todayDD.length) * 100) : 0;
                 document.getElementById('attendanceRate').textContent = rate + '%';
-
-                // Buổi hiện tại (từ logic backend)
                 const now = new Date();
                 const hour = now.getHours();
                 let buoi = 'Sáng';
                 if (hour >= 12 && hour < 17) buoi = 'Chiều';
                 else if (hour >= 17) buoi = 'Tối';
                 document.getElementById('currentSession').textContent = buoi;
-
-                // Ghi chú: Hiển thị status scan (giả lập, có thể poll nếu backend có endpoint)
                 document.getElementById('scanStatus').style.display = 'block';
-            } catch (error) {
-                console.error('Lỗi load stats:', error);
-            }
+            } catch (err) { console.error('Lỗi dashboard:', err); }
         }
 
         // ========== SINH VIÊN ==========
         async function loadSinhVien() {
             try {
-                const response = await fetch('http://localhost:5000/sinhvien');
-                const data = await response.json();
+                const res = await fetch('http://localhost:5000/sinhvien');
+                const data = await res.json();
                 const tbody = document.querySelector('#sinhVienTable tbody');
                 tbody.innerHTML = '';
                 data.forEach(sv => {
-                    const row = `<tr>
+                    tbody.innerHTML += `<tr>
                         <td>${sv._id}</td>
                         <td>${sv.Ten}</td>
                         <td>${sv.MSSV}</td>
-                        <td><span class="badge ${sv.Is_active ? 'bg-success' : 'bg-secondary'}">${sv.Is_active ? 'Hoạt động' : 'Không hoạt động'}</span></td>
+                        <td><span class="badge bg-success">Hoạt động</span></td>
                         <td>
                             <button class="btn btn-sm btn-warning" onclick="editSv('${sv._id}', '${sv.Ten}', '${sv.MSSV}')">Sửa</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSv('${sv._id}')">Xóa</button>
                         </td>
                     </tr>`;
-                    tbody.innerHTML += row;
                 });
-            } catch (error) {
-                console.error('Lỗi tải danh sách:', error);
-                alert('Lỗi tải danh sách sinh viên!');
-            }
+            } catch (err) { alert('Lỗi tải sinh viên!'); }
         }
 
         document.getElementById('addSinhVienForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const editId = document.getElementById('editSvId').value;
+            const id = document.getElementById('editSvId').value;
             const ten = document.getElementById('tenSV').value;
             const mssv = document.getElementById('mssvSV').value;
-            const url = editId ? `http://localhost:5000/sinhvien/${editId}` : 'http://localhost:5000/sinhvien';
-            const method = editId ? 'PUT' : 'POST';
-
-            try {
-                const response = await fetch(url, {
-                    method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ Ten: ten, MSSV: mssv })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.message || 'Thành công!');
-                    loadSinhVien();
-                    resetSvForm();
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                alert('Lỗi kết nối!');
-            }
+            const url = id ? `http://localhost:5000/sinhvien/${id}` : 'http://localhost:5000/sinhvien';
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ Ten: ten, MSSV: mssv }) });
+            loadSinhVien(); resetSvForm();
         });
 
         function editSv(id, ten, mssv) {
@@ -554,22 +352,35 @@
         }
 
         function deleteSv(id) {
-            if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/sinhvien/${id}`, { method: 'DELETE' })
-                    .then(() => loadSinhVien())
-                    .catch(error => alert('Lỗi xóa!'));
+            if (confirm('Xóa sinh viên này?')) {
+                fetch(`http://localhost:5000/sinhvien/${id}`, { method: 'DELETE' }).then(() => loadSinhVien());
             }
         }
 
         // ========== THIẾT BỊ ==========
+        async function loadSinhVienForDropdown() {
+            try {
+                const res = await fetch('http://localhost:5000/sinhvien');
+                const data = await res.json();
+                const select = document.getElementById('svIdTB');
+                select.innerHTML = '<option value="">-- Chọn Sinh viên --</option>';
+                data.forEach(sv => {
+                    const opt = document.createElement('option');
+                    opt.value = sv._id;
+                    opt.textContent = `${sv.Ten} - ${sv.MSSV}`;
+                    select.appendChild(opt);
+                });
+            } catch (err) { console.error('Lỗi load SV dropdown:', err); }
+        }
+
         async function loadThietBi() {
             try {
-                const response = await fetch('http://localhost:5000/thietbi');
-                const data = await response.json();
+                const res = await fetch('http://localhost:5000/thietbi');
+                const data = await res.json();
                 const tbody = document.querySelector('#thietBiTable tbody');
                 tbody.innerHTML = '';
                 data.forEach(tb => {
-                    const row = `<tr>
+                    tbody.innerHTML += `<tr>
                         <td>${tb._id}</td>
                         <td>${tb.SinhVien_id}</td>
                         <td class="mac-col">${tb.MAC}</td>
@@ -581,12 +392,8 @@
                             <button class="btn btn-sm btn-danger" onclick="deleteTb('${tb._id}')">Xóa</button>
                         </td>
                     </tr>`;
-                    tbody.innerHTML += row;
                 });
-            } catch (error) {
-                console.error('Lỗi tải danh sách:', error);
-                alert('Lỗi tải danh sách thiết bị!');
-            }
+            } catch (err) { alert('Lỗi tải thiết bị!'); }
         }
 
         document.getElementById('addThietBiForm').addEventListener('submit', async (e) => {
@@ -597,24 +404,8 @@
             const ten = document.getElementById('tenTB').value;
             const url = editId ? `http://localhost:5000/thietbi/${editId}` : 'http://localhost:5000/thietbi';
             const method = editId ? 'PUT' : 'POST';
-
-            try {
-                const response = await fetch(url, {
-                    method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ SinhVien_id: svId, MAC: mac, Ten_ThietBi: ten })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.message || 'Thành công!');
-                    loadThietBi();
-                    resetTbForm();
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                alert('Lỗi kết nối!');
-            }
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ SinhVien_id: svId, MAC: mac, Ten_ThietBi: ten }) });
+            loadThietBi(); resetTbForm();
         });
 
         function editTb(id, svId, mac, ten) {
@@ -633,29 +424,61 @@
 
         function deleteTb(id) {
             if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/thietbi/${id}`, { method: 'DELETE' })
-                    .then(() => loadThietBi())
-                    .catch(error => alert('Lỗi xóa!'));
+                fetch(`http://localhost:5000/thietbi/${id}`, { method: 'DELETE' }).then(() => loadThietBi());
             }
         }
 
-        // ========== ĐIỂM DANH ==========
-        // Ghi chú: Logic ghép nối: POST /diemdanh xử lý check-in/check-out theo backend (không có Ngay trong response, nhưng filter ở frontend)
+        // ========== ĐIỂM DANH THỦ CÔNG - ĐÃ BỎ HOÀN TOÀN Is_active ==========
+        async function loadSinhVienForDiemDanh() {
+            try {
+                const [svRes, tbRes] = await Promise.all([
+                    fetch('http://localhost:5000/sinhvien'),
+                    fetch('http://localhost:5000/thietbi')
+                ]);
+                const sinhVien = await svRes.json();
+                const thietBi = await tbRes.json();
+
+                // Tạo map: SinhVien_id → MAC (lấy thiết bị đầu tiên, KHÔNG kiểm tra Is_active)
+                mapSinhVienToMac = {};
+                thietBi.forEach(tb => {
+                    if (tb.SinhVien_id && !mapSinhVienToMac[tb.SinhVien_id]) {
+                        mapSinhVienToMac[tb.SinhVien_id] = tb.MAC;
+                    }
+                });
+
+                // Điền dropdown: tất cả sinh viên có ít nhất 1 thiết bị (dù Is_active = false)
+                const select = document.getElementById('svSelectDD');
+                select.innerHTML = '<option value="">-- Chọn Sinh viên --</option>';
+                sinhVien.forEach(sv => {
+                    if (mapSinhVienToMac[sv._id]) {
+                        const opt = document.createElement('option');
+                        opt.value = sv._id;
+                        opt.textContent = `${sv.Ten} - ${sv.MSSV}`;
+                        select.appendChild(opt);
+                    }
+                });
+            } catch (err) {
+                console.error('Lỗi load điểm danh:', err);
+            }
+        }
+
+        // Khi chọn sinh viên → tự động điền MAC
+        document.getElementById('svSelectDD')?.addEventListener('change', function() {
+            const mac = mapSinhVienToMac[this.value] || '';
+            document.getElementById('macDD').value = mac;
+        });
+
         async function loadDiemDanh() {
             try {
-                const response = await fetch('http://localhost:5000/diemdanh');
-                const data = await response.json();
+                const res = await fetch('http://localhost:5000/diemdanh');
+                const data = await res.json();
                 const tbody = document.querySelector('#diemDanhTable tbody');
                 tbody.innerHTML = '';
-                // Ghi chú: Filter hôm nay nếu có Ngay, nhưng backend không luôn có, load tất cả và filter client-side
                 const today = new Date().toISOString().split('T')[0];
-                const todayData = data.filter(dd => dd.Ngay === today || !dd.Ngay); // Fallback nếu không có Ngay
-                todayData.forEach(dd => {
-                    let statusClass = 'bg-secondary';
-                    if (dd.TrangThai.includes('Có mặt')) statusClass = 'status-co-mat';
-                    else if (dd.TrangThai.includes('Vắng')) statusClass = 'status-vang';
-                    else if (dd.TrangThai.includes('Đi trễ') || dd.TrangThai.includes('Về sớm')) statusClass = 'status-di-tre';
-                    const row = `<tr>
+                data.filter(dd => dd.Ngay === today || !dd.Ngay).forEach(dd => {
+                    let statusClass = dd.TrangThai.includes('Có mặt') ? 'status-co-mat' : 
+                                     dd.TrangThai.includes('Vắng') ? 'status-vang' : 'status-di-tre';
+                    tbody.innerHTML += `<tr>
                         <td>${dd._id}</td>
                         <td>${dd.Ten_SinhVien}</td>
                         <td class="mac-col">${dd.MAC}</td>
@@ -668,72 +491,42 @@
                             <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
                         </td>
                     </tr>`;
-                    tbody.innerHTML += row;
                 });
-            } catch (error) {
-                console.error('Lỗi tải danh sách:', error);
-                alert('Lỗi tải danh sách điểm danh!');
-            }
+            } catch (err) { alert('Lỗi tải điểm danh!'); }
         }
 
         document.getElementById('diemDanhForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const mac = document.getElementById('macDD').value.toUpperCase(); // Ghi chú: Chuẩn hóa MAC như backend
-            const messageDiv = document.getElementById('ddMessage');
-
-            if (!mac.match(/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/)) {
-                messageDiv.innerHTML = '<div class="alert alert-warning">MAC không hợp lệ! Ví dụ: AA:BB:CC:DD:EE:FF</div>';
-                return;
-            }
-
+            const mac = document.getElementById('macDD').value.toUpperCase();
+            const msgDiv = document.getElementById('ddMessage');
+            if (!mac) { msgDiv.innerHTML = '<div class="alert alert-warning">Vui lòng chọn sinh viên!</div>'; return; }
             try {
-                const response = await fetch('http://localhost:5000/diemdanh', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const res = await fetch('http://localhost:5000/diemdanh', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ MAC: mac })
                 });
-                const data = await response.json();
-                if (response.ok) {
-                    messageDiv.innerHTML = `<div class="alert alert-success">${data.message} - ${data.Ten_SinhVien}: ${data.TrangThai} (${data.Buoi})</div>`;
-                    loadDiemDanh(); // Reload ngay để hiển thị cập nhật
-                    e.target.reset();
-                } else {
-                    messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-                }
-            } catch (error) {
-                messageDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>';
-            }
+                const data = await res.json();
+                msgDiv.innerHTML = res.ok ?
+                    `<div class="alert alert-success">${data.message} - ${data.Ten_SinhVien}: ${data.TrangThai} (${data.Buoi})</div>` :
+                    `<div class="alert alert-danger">${data.message}</div>`;
+                if (res.ok) { loadDiemDanh(); e.target.reset(); document.getElementById('macDD').value = ''; }
+            } catch (err) { msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>'; }
         });
 
-        function editDd(id) {
-            // Ghi chú: Placeholder cho edit, có thể mở modal cập nhật TD_Vao/TD_Ra/TrạngThai qua PUT /diemdanh/{id}
-            alert('Chức năng sửa: Cập nhật trạng thái cho ID ' + id + '. Sử dụng PUT API nếu cần.');
-        }
-
-        function deleteDd(id) {
-            if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/diemdanh/${id}`, { method: 'DELETE' })
-                    .then(() => loadDiemDanh())
-                    .catch(error => alert('Lỗi xóa!'));
-            }
-        }
+        function editDd(id) { alert('Sửa điểm danh ID: ' + id); }
+        function deleteDd(id) { if (confirm('Xóa?')) fetch(`http://localhost:5000/diemdanh/${id}`, { method: 'DELETE' }).then(() => loadDiemDanh()); }
 
         // ========== CÀI ĐẶT ==========
         async function loadCaiDat() {
             try {
-                const response = await fetch('http://localhost:5000/caidat');
-                const data = await response.json();
+                const res = await fetch('http://localhost:5000/caidat');
+                const data = await res.json();
                 const tbody = document.querySelector('#caiDatTable tbody');
                 tbody.innerHTML = '';
                 data.forEach(cd => {
-                    const row = `<tr>
-                        <td>${cd._id}</td>
-                        <td>${cd.Buoi}</td>
-                        <td>${cd.TD_BatDau}</td>
-                        <td>${cd.TD_KetThuc}</td>
-                        <td>${cd.TD_Reset || 'N/A'}</td>
-                        <td>${cd.Mail || 'N/A'}</td>
-                        <td>${cd.TG_DiTre || 0}</td>
+                    tbody.innerHTML += `<tr>
+                        <td>${cd._id}</td><td>${cd.Buoi}</td><td>${cd.TD_BatDau}</td><td>${cd.TD_KetThuc}</td>
+                        <td>${cd.TD_Reset || 'N/A'}</td><td>${cd.Mail || 'N/A'}</td><td>${cd.TG_DiTre || 0}</td>
                         <td>${cd.TD_Setting ? new Date(cd.TD_Setting).toLocaleString('vi-VN') : 'N/A'}</td>
                         <td><span class="badge ${cd.Is_active ? 'bg-success' : 'bg-secondary'}">${cd.Is_active ? 'Hoạt động' : 'Không hoạt động'}</span></td>
                         <td>
@@ -741,12 +534,8 @@
                             <button class="btn btn-sm btn-danger" onclick="deleteCd('${cd._id}')">Xóa</button>
                         </td>
                     </tr>`;
-                    tbody.innerHTML += row;
                 });
-            } catch (error) {
-                console.error('Lỗi tải danh sách:', error);
-                alert('Lỗi tải danh sách cài đặt!');
-            }
+            } catch (err) { alert('Lỗi tải cài đặt!'); }
         }
 
         document.getElementById('addCaiDatForm').addEventListener('submit', async (e) => {
@@ -758,32 +547,11 @@
             const tdReset = document.getElementById('tdReset').value;
             const mail = document.getElementById('mailCD').value;
             const tgDiTre = parseInt(document.getElementById('tgDiTre').value) || 0;
-            const url = editId ? `http://localhost:5000/caidat/${editId}` : 'http://localhost:5000/caidat';
+            if (tdBatDau >= tdKetThuc) { alert('Thời gian bắt đầu phải trước kết thúc!'); return; }
+            const url = editId ? `http://localhost:5000/caidat/${editId}` : `http://localhost:5000/caidat`;
             const method = editId ? 'PUT' : 'POST';
-
-            // Ghi chú: Validate thời gian bắt đầu < kết thúc
-            if (new Date('1970-01-01T' + tdBatDau + ':00') >= new Date('1970-01-01T' + tdKetThuc + ':00')) {
-                alert('Thời gian bắt đầu phải trước thời gian kết thúc!');
-                return;
-            }
-
-            try {
-                const response = await fetch(url, {
-                    method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ Buoi: buoi, TD_BatDau: tdBatDau, TD_KetThuc: tdKetThuc, TD_Reset: tdReset, Mail: mail, TG_DiTre: tgDiTre })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.message || 'Thành công! Cài đặt sẽ áp dụng cho scan tự động.');
-                    loadCaiDat();
-                    resetCdForm();
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                alert('Lỗi kết nối!');
-            }
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ Buoi: buoi, TD_BatDau: tdBatDau, TD_KetThuc: tdKetThuc, TD_Reset: tdReset, Mail: mail, TG_DiTre: tgDiTre }) });
+            loadCaiDat(); resetCdForm();
         });
 
         function editCd(id, buoi, tdBatDau, tdKetThuc, tdReset, mail, tgDiTre) {
@@ -806,18 +574,18 @@
 
         function deleteCd(id) {
             if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/caidat/${id}`, { method: 'DELETE' })
-                    .then(() => loadCaiDat())
-                    .catch(error => alert('Lỗi xóa!'));
+                fetch(`http://localhost:5000/caidat/${id}`, { method: 'DELETE' }).then(() => loadCaiDat());
             }
         }
 
-        // Ghi chú: Khởi tạo SPA, trang đăng nhập hiển thị đầu tiên. Kiểm tra login nếu reload
-        if (localStorage.getItem('loggedIn')) {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            showPage('dashboard');
-        }
+        // ========== KHỞI TẠO ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('loggedIn') === 'true') {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                showPage('dashboard');
+            }
+        });
     </script>
 </body>
 </html>
