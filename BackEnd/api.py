@@ -411,3 +411,21 @@ async def delete_user(request):
     id = request.match_info["id"]
     await delete_one(dangnhap_col, id)
     return web.json_response({"message": "Xóa thành công!"})
+
+
+# Endpoint đăng nhập (xác thực)
+@routes.post("/login")
+async def login(request):
+    data = await request.json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return web.json_response({"message": "Vui lòng nhập username và password!"}, status=400)
+
+    user = await dangnhap_col.find_one({"username": username, "password": password})
+    if not user:
+        return web.json_response({"message": "Tên đăng nhập hoặc mật khẩu không đúng"}, status=401)
+
+    # Trả về thông tin tối thiểu cho client (không gửi password)
+    return web.json_response({"message": "Đăng nhập thành công", "username": username}, status=200)
