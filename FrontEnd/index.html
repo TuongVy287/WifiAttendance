@@ -17,13 +17,76 @@
         .page.active { display: block; }
         .welcome-card, .form-add, .table-container { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 2rem; }
         .mac-col { font-family: monospace; font-weight: bold; color: #667eea; }
-        .status-co-mat { background-color: #d4edda; color: #155724; }
-        .status-vang { background-color: #fff3cd; color: #856404; }
-        .status-di-tre, .status-ve-som { background-color: #f8d7da; color: #721c24; }
         .login-container { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
         .login-card { background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; width: 100%; max-width: 400px; }
         .wifi-icon { font-size: 3rem; color: #667eea; text-align: center; margin-bottom: 1rem; }
-        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-left: 0; } }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-left: 0; }.table-scroll-wrapper {max-height: 400px;} }
+        
+        #toastContainer {position: fixed;bottom: 20px;right: 20px;z-index: 9999;}
+        .toast-item {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 10px;
+            animation: fadeInOut 3s forwards;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        @keyframes fadeInOut {0%, 100% { opacity: 0; transform: translateY(20px); }15%, 85% { opacity: 1; transform: translateY(0); }}
+
+        /* Toggle */
+        .status-toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .status-toggle input {opacity: 0;width: 0;height: 0;}
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {background-color: #28a745;}
+        input:checked + .slider:before {transform: translateX(20px);}
+
+        /* Thanh cuộn */
+        .table-scroll-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .table-scroll-wrapper::-webkit-scrollbar {width: 8px;height: 8px;}
+        .table-scroll-wrapper::-webkit-scrollbar-track {background: #f1f1f1; border-radius: 10px;}
+        .table-scroll-wrapper::-webkit-scrollbar-thumb {background: #c0c0c0;border-radius: 10px;}
+        .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {background: #a8a8a8;}
+        .table-scroll-wrapper table {margin-bottom: 0;}
+        .table-scroll-wrapper thead th {
+            position: sticky;
+            top: 0;
+            background: #667eea !important;
+            color: white !important;
+            z-index: 10;
+            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -97,13 +160,18 @@
                     </form>
                 </div>
                 <div class="table-container">
-                    <table class="table table-striped" id="sinhVienTable">
-                        <thead><tr><th>ID</th><th>Tên</th><th>MSSV</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
+                    <div class="table-scroll-wrapper">
+                        <table class="table table-striped table-hover" id="sinhVienTable">
+                            <thead class="table-dark"><tr><th>ID</th><th>Tên</th><th>MSSV</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Toast nhẹ -->
+        <div id="toastContainer"></div>
 
         <!-- Thiết bị -->
         <div id="thietbiPage" class="page">
@@ -115,14 +183,14 @@
                         <input type="hidden" id="editTbId">
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label>Sinh viên ID</label>
+                                <label>Sinh viên</label>
                                 <select class="form-control" id="svIdTB" required>
                                     <option value="">-- Chọn Sinh viên --</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label>MAC</label>
-                                <input type="text" class="form-control" id="macTB" required>
+                                <input type="text" class="form-control" id="macTB" required placeholder="AA:BB:CC:DD:EE:FF">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label>Tên Thiết bị</label>
@@ -134,10 +202,14 @@
                     </form>
                 </div>
                 <div class="table-container">
-                    <table class="table table-striped" id="thietBiTable">
-                        <thead><tr><th>ID</th><th>Sinh viên ID</th><th>MAC</th><th>Tên Thiết bị</th><th>Thời gian Thêm</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
+                    <div class="table-scroll-wrapper">
+                        <table class="table table-striped table-hover" id="thietBiTable">
+                            <thead class="table-dark">
+                                <tr><th>ID</th><th>Sinh viên</th><th>MAC</th><th>Tên TB</th><th>Thời gian</th><th>Trạng thái</th><th>Hành động</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,7 +219,7 @@
             <div class="main-content">
                 <h2>Điểm danh</h2>
                 <div class="form-add">
-                    <h5>Điểm danh Thủ công (Check-in/Check-out)</h5>
+                    <h5>Điểm danh Thủ công</h5>
                     <p class="text-muted small">Chọn sinh viên → MAC tự động → Ghi nhận điểm danh.</p>
                     <form id="diemDanhForm">
                         <div class="row">
@@ -159,7 +231,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label>MAC (Tự động)</label>
-                                <input type="text" class="form-control" id="macDD" readonly placeholder="MAC sẽ hiển thị khi chọn SV">
+                                <input type="text" class="form-control" id="macDD" readonly>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Ghi nhận Điểm danh</button>
@@ -167,10 +239,14 @@
                     <div id="ddMessage" class="mt-2"></div>
                 </div>
                 <div class="table-container">
-                    <table class="table table-striped" id="diemDanhTable">
-                        <thead><tr><th>ID</th><th>Tên SV</th><th>MAC</th><th>Buổi</th><th>Thời gian Vào</th><th>Thời gian Ra</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
+                    <div class="table-scroll-wrapper">
+                        <table class="table table-striped table-hover" id="diemDanhTable">
+                            <thead class="table-dark">
+                                <tr><th>Tên SV</th><th>MAC</th><th>Buổi</th><th>Vào</th><th>Ra</th><th>Ngày</th><th>Trạng thái</th><th>Hành động</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -192,9 +268,9 @@
                                     <option value="Tối">Tối</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 mb-3"><label>Thời gian Bắt đầu</label><input type="time" class="form-control" id="tdBatDau" required></div>
-                            <div class="col-md-3 mb-3"><label>Thời gian Kết thúc</label><input type="time" class="form-control" id="tdKetThuc" required></div>
-                            <div class="col-md-3 mb-3"><label>Thời gian Reset</label><input type="time" class="form-control" id="tdReset"></div>
+                            <div class="col-md-3 mb-3"><label>Bắt đầu</label><input type="time" class="form-control" id="tdBatDau" required></div>
+                            <div class="col-md-3 mb-3"><label>Kết thúc</label><input type="time" class="form-control" id="tdKetThuc" required></div>
+                            <div class="col-md-3 mb-3"><label>Reset</label><input type="time" class="form-control" id="tdReset"></div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3"><label>Email</label><input type="email" class="form-control" id="mailCD"></div>
@@ -205,17 +281,21 @@
                     </form>
                 </div>
                 <div class="table-container">
-                    <table class="table table-striped" id="caiDatTable">
-                        <thead><tr><th>ID</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Reset</th><th>Email</th><th>Đi trễ</th><th>Thời gian</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
+                    <div class="table-scroll-wrapper">
+                        <table class="table table-striped table-hover" id="caiDatTable">
+                            <thead class="table-dark">
+                                <tr><th>ID</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Reset</th><th>Email</th><th>Đi trễ</th><th>Thời gian</th><th>TT</th><th>Hành động</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // ========== BIẾN TOÀN CỤC ==========
+        // ========== TOÀN CỤC ==========
         let mapSinhVienToMac = {};
 
         // ========== SHOW PAGE ==========
@@ -252,10 +332,9 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="alert alert-success">Đăng nhập thành công! Đang chuyển hướng...</div>';
+                    messageDiv.innerHTML = '<div class="alert alert-success">Đăng nhập thành công!</div>';
                     localStorage.setItem('loggedIn', 'true');
                     setTimeout(() => {
-                        document.getElementById('loginPage').classList.remove('active');
                         document.getElementById('loginPage').style.display = 'none';
                         document.getElementById('mainApp').style.display = 'block';
                         showPage('dashboard');
@@ -264,7 +343,7 @@
                     messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
                 }
             } catch (error) {
-                messageDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối! Kiểm tra backend đang chạy chưa.</div>';
+                messageDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối backend!</div>';
             }
         });
 
@@ -274,7 +353,18 @@
             document.getElementById('loginPage').style.display = 'block';
             document.getElementById('loginPage').classList.add('active');
             document.getElementById('loginForm').reset();
-            document.getElementById('loginMessage').innerHTML = '';
+        }
+
+        // ========== TOAST ==========
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast-item';
+            toast.style.background = type === 'danger' ? 'rgba(220,53,69,0.9)' : 
+                                    type === 'warning' ? 'rgba(255,193,7,0.9)' : 'rgba(40,167,69,0.9)';
+            toast.innerHTML = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         // ========== DASHBOARD ==========
@@ -291,18 +381,14 @@
                 document.getElementById('svCount').textContent = sv.length;
                 document.getElementById('tbCount').textContent = tb.length;
                 const today = new Date().toISOString().split('T')[0];
-                const todayDD = dd.filter(d => d.Ngay === today);
-                const coMat = todayDD.filter(d => d.TrangThai.includes('Có mặt')).length;
+                const todayDD = dd.filter(d => d.Ngay === today || (d.TD_Vao && new Date(d.TD_Vao).toISOString().split('T')[0] === today));
+                const coMat = todayDD.filter(d => d.TrangThai && d.TrangThai.includes('Có mặt')).length;
                 const rate = todayDD.length > 0 ? Math.round((coMat / todayDD.length) * 100) : 0;
                 document.getElementById('attendanceRate').textContent = rate + '%';
-                const now = new Date();
-                const hour = now.getHours();
-                let buoi = 'Sáng';
-                if (hour >= 12 && hour < 17) buoi = 'Chiều';
-                else if (hour >= 17) buoi = 'Tối';
-                document.getElementById('currentSession').textContent = buoi;
+                const hour = new Date().getHours();
+                document.getElementById('currentSession').textContent = hour < 12 ? 'Sáng' : hour < 17 ? 'Chiều' : 'Tối';
                 document.getElementById('scanStatus').style.display = 'block';
-            } catch (err) { console.error('Lỗi dashboard:', err); }
+            } catch (err) { console.error(err); }
         }
 
         // ========== SINH VIÊN ==========
@@ -313,29 +399,60 @@
                 const tbody = document.querySelector('#sinhVienTable tbody');
                 tbody.innerHTML = '';
                 data.forEach(sv => {
+                    const isActive = sv.Is_active === true;
                     tbody.innerHTML += `<tr>
-                        <td>${sv._id}</td>
-                        <td>${sv.Ten}</td>
+                        <td><small class="text-muted">${sv._id.slice(-6)}</small></td>
+                        <td><strong>${sv.Ten}</strong></td>
                         <td>${sv.MSSV}</td>
-                        <td><span class="badge bg-success">Hoạt động</span></td>
+                        <td>
+                            <label class="status-toggle">
+                                <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleSvStatus('${sv._id}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span style="margin-left:8px; font-weight:500; color:${isActive ? '#28a745' : '#dc3545'}">
+                                ${isActive ? 'Hoạt động' : 'Nghỉ học'}
+                            </span>
+                        </td>
                         <td>
                             <button class="btn btn-sm btn-warning" onclick="editSv('${sv._id}', '${sv.Ten}', '${sv.MSSV}')">Sửa</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSv('${sv._id}')">Xóa</button>
                         </td>
                     </tr>`;
                 });
-            } catch (err) { alert('Lỗi tải sinh viên!'); }
+            } catch (err) { showToast('Lỗi tải sinh viên!', 'danger'); }
+        }
+
+        async function toggleSvStatus(id, isActive) {
+            try {
+                await fetch(`http://localhost:5000/sinhvien/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Is_active: isActive })
+                });
+                showToast(`Đã chuyển sang <strong>${isActive ? 'Hoạt động' : 'Nghỉ học'}</strong>`, 'success');
+                loadSinhVien();
+            } catch (err) { showToast('Lỗi cập nhật!', 'danger'); }
         }
 
         document.getElementById('addSinhVienForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('editSvId').value;
-            const ten = document.getElementById('tenSV').value;
-            const mssv = document.getElementById('mssvSV').value;
+            const ten = document.getElementById('tenSV').value.trim();
+            const mssv = document.getElementById('mssvSV').value.trim();
+            if (!ten || !mssv) return showToast('Nhập đầy đủ!', 'warning');
+
             const url = id ? `http://localhost:5000/sinhvien/${id}` : 'http://localhost:5000/sinhvien';
             const method = id ? 'PUT' : 'POST';
-            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ Ten: ten, MSSV: mssv }) });
-            loadSinhVien(); resetSvForm();
+            const body = id ? { Ten: ten, MSSV: mssv } : { Ten: ten, MSSV: mssv, Is_active: true };
+
+            try {
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (res.ok) {
+                    showToast(id ? 'Cập nhật thành công!' : 'Thêm sinh viên thành công!', 'success');
+                    loadSinhVien();
+                    resetSvForm();
+                }
+            } catch (err) { showToast('Lỗi!', 'danger'); }
         });
 
         function editSv(id, ten, mssv) {
@@ -353,7 +470,9 @@
 
         function deleteSv(id) {
             if (confirm('Xóa sinh viên này?')) {
-                fetch(`http://localhost:5000/sinhvien/${id}`, { method: 'DELETE' }).then(() => loadSinhVien());
+                fetch(`http://localhost:5000/sinhvien/${id}`, { method: 'DELETE' })
+                    .then(() => { showToast('Đã xóa!', 'success'); loadSinhVien(); })
+                    .catch(() => showToast('Lỗi xóa!', 'danger'));
             }
         }
 
@@ -370,51 +489,119 @@
                     opt.textContent = `${sv.Ten} - ${sv.MSSV}`;
                     select.appendChild(opt);
                 });
-            } catch (err) { console.error('Lỗi load SV dropdown:', err); }
+            } catch (err) { console.error(err); }
         }
 
         async function loadThietBi() {
             try {
-                const res = await fetch('http://localhost:5000/thietbi');
-                const data = await res.json();
+                const [tbRes, svRes] = await Promise.all([
+                    fetch('http://localhost:5000/thietbi'),
+                    fetch('http://localhost:5000/sinhvien')
+                ]);
+                const thietBi = await tbRes.json();
+                const sinhVien = await svRes.json();
+
+                const svMap = {};
+                sinhVien.forEach(sv => svMap[sv._id] = `${sv.Ten} - ${sv.MSSV}`);
+
                 const tbody = document.querySelector('#thietBiTable tbody');
                 tbody.innerHTML = '';
-                data.forEach(tb => {
-                    tbody.innerHTML += `<tr>
-                        <td>${tb._id}</td>
-                        <td>${tb.SinhVien_id}</td>
+
+                thietBi.forEach(tb => {
+                    const tenSV = svMap[tb.SinhVien_id] || 'Chưa gán';
+                    const ngayThem = tb.TD_Them_ThietBi 
+                        ? new Date(tb.TD_Them_ThietBi).toLocaleString('vi-VN') 
+                        : 'N/A';
+
+                    tbody.innerHTML += `
+                    <tr>
+                        <td><small class="text-muted">${tb._id.slice(-6)}</small></td>
+                        <td><strong>${tenSV}</strong></td>
                         <td class="mac-col">${tb.MAC}</td>
                         <td>${tb.Ten_ThietBi}</td>
-                        <td>${tb.TD_Them_ThietBi}</td>
-                        <td><span class="badge ${tb.Is_active ? 'bg-success' : 'bg-secondary'}">${tb.Is_active ? 'Hoạt động' : 'Không hoạt động'}</span></td>
+                        <td><small>${ngayThem}</small></td>
                         <td>
-                            <button class="btn btn-sm btn-warning" onclick="editTb('${tb._id}', '${tb.SinhVien_id}', '${tb.MAC}', '${tb.Ten_ThietBi}')">Sửa</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteTb('${tb._id}')">Xóa</button>
+                            <span class="badge ${tb.Is_active ? 'bg-success' : 'bg-secondary'}">
+                                ${tb.Is_active ? 'Hoạt động' : 'Không hoạt động'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-warning"
+                                    onclick="editThietBi(this)"
+                                    data-id="${tb._id}"
+                                    data-svid="${tb.SinhVien_id}"
+                                    data-mac="${tb.MAC}"
+                                    data-ten="${tb.Ten_ThietBi}">
+                                Sửa
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTb('${tb._id}')">
+                                Xóa
+                            </button>
                         </td>
                     </tr>`;
                 });
-            } catch (err) { alert('Lỗi tải thiết bị!'); }
+            } catch (err) {
+                showToast('Lỗi tải thiết bị!', 'danger');
+            }
+        }
+
+        // FIX HOÀN TOÀN LỖI ObjectId
+        function editThietBi(button) {
+            const id = button.getAttribute('data-id');
+            const svId = button.getAttribute('data-svid');  // ObjectId nguyên bản
+            const mac = button.getAttribute('data-mac');
+            const ten = button.getAttribute('data-ten');
+
+            document.getElementById('editTbId').value = id;
+            document.getElementById('macTB').value = mac;
+            document.getElementById('tenTB').value = ten;
+
+            loadSinhVienForDropdown().then(() => {
+                const select = document.getElementById('svIdTB');
+                select.value = svId;
+                if (select.value !== svId) {
+                    for (let opt of select.options) {
+                        if (opt.value === svId) { opt.selected = true; break; }
+                    }
+                }
+            });
+
+            document.querySelector('#addThietBiForm button[type="submit"]').textContent = 'Cập nhật';
+            showToast('Đã tải thông tin thiết bị', 'success');
         }
 
         document.getElementById('addThietBiForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const editId = document.getElementById('editTbId').value;
             const svId = document.getElementById('svIdTB').value;
-            const mac = document.getElementById('macTB').value;
-            const ten = document.getElementById('tenTB').value;
+            const mac = document.getElementById('macTB').value.toUpperCase().trim();
+            const ten = document.getElementById('tenTB').value.trim();
+
+            if (!svId) return showToast('Chọn sinh viên!', 'warning');
+            if (!mac || !ten) return showToast('Nhập đầy đủ!', 'warning');
+
             const url = editId ? `http://localhost:5000/thietbi/${editId}` : 'http://localhost:5000/thietbi';
             const method = editId ? 'PUT' : 'POST';
-            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ SinhVien_id: svId, MAC: mac, Ten_ThietBi: ten }) });
-            loadThietBi(); resetTbForm();
-        });
 
-        function editTb(id, svId, mac, ten) {
-            document.getElementById('editTbId').value = id;
-            document.getElementById('svIdTB').value = svId;
-            document.getElementById('macTB').value = mac;
-            document.getElementById('tenTB').value = ten;
-            document.querySelector('#addThietBiForm button[type="submit"]').textContent = 'Cập nhật';
-        }
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ SinhVien_id: svId, MAC: mac, Ten_ThietBi: ten })
+                });
+
+                if (res.ok) {
+                    showToast(editId ? 'Cập nhật thành công!' : 'Thêm thiết bị thành công!', 'success');
+                    loadThietBi();
+                    resetTbForm();
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Lỗi server!', 'danger');
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối!', 'danger');
+            }
+        });
 
         function resetTbForm() {
             document.getElementById('addThietBiForm').reset();
@@ -423,12 +610,14 @@
         }
 
         function deleteTb(id) {
-            if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/thietbi/${id}`, { method: 'DELETE' }).then(() => loadThietBi());
+            if (confirm('Xóa thiết bị này?')) {
+                fetch(`http://localhost:5000/thietbi/${id}`, { method: 'DELETE' })
+                    .then(() => { showToast('Đã xóa!', 'success'); loadThietBi(); })
+                    .catch(() => showToast('Lỗi!', 'danger'));
             }
         }
 
-        // ========== ĐIỂM DANH THỦ CÔNG - ĐÃ BỎ HOÀN TOÀN Is_active ==========
+        // ========== ĐIỂM DANH ==========
         async function loadSinhVienForDiemDanh() {
             try {
                 const [svRes, tbRes] = await Promise.all([
@@ -438,7 +627,6 @@
                 const sinhVien = await svRes.json();
                 const thietBi = await tbRes.json();
 
-                // Tạo map: SinhVien_id → MAC (lấy thiết bị đầu tiên, KHÔNG kiểm tra Is_active)
                 mapSinhVienToMac = {};
                 thietBi.forEach(tb => {
                     if (tb.SinhVien_id && !mapSinhVienToMac[tb.SinhVien_id]) {
@@ -446,7 +634,6 @@
                     }
                 });
 
-                // Điền dropdown: tất cả sinh viên có ít nhất 1 thiết bị (dù Is_active = false)
                 const select = document.getElementById('svSelectDD');
                 select.innerHTML = '<option value="">-- Chọn Sinh viên --</option>';
                 sinhVien.forEach(sv => {
@@ -457,15 +644,11 @@
                         select.appendChild(opt);
                     }
                 });
-            } catch (err) {
-                console.error('Lỗi load điểm danh:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Khi chọn sinh viên → tự động điền MAC
         document.getElementById('svSelectDD')?.addEventListener('change', function() {
-            const mac = mapSinhVienToMac[this.value] || '';
-            document.getElementById('macDD').value = mac;
+            document.getElementById('macDD').value = mapSinhVienToMac[this.value] || '';
         });
 
         async function loadDiemDanh() {
@@ -474,47 +657,75 @@
                 const data = await res.json();
                 const tbody = document.querySelector('#diemDanhTable tbody');
                 tbody.innerHTML = '';
-                const today = new Date().toISOString().split('T')[0];
-                data.filter(dd => dd.Ngay === today || !dd.Ngay).forEach(dd => {
-                    let statusClass = dd.TrangThai.includes('Có mặt') ? 'status-co-mat' : 
-                                     dd.TrangThai.includes('Vắng') ? 'status-vang' : 'status-di-tre';
-                    tbody.innerHTML += `<tr>
-                        <td>${dd._id}</td>
-                        <td>${dd.Ten_SinhVien}</td>
+
+                data.sort((a, b) => {
+                    const timeA = a.TD_Vao ? new Date(a.TD_Vao) : 0;
+                    const timeB = b.TD_Vao ? new Date(b.TD_Vao) : 0;
+                    return timeB - timeA;
+                });
+
+                data.forEach(dd => {
+                    const ngayDisplay = dd.TD_Vao 
+                        ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', { 
+                            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' 
+                          }).replace(',', '')
+                        : '<span class="text-muted">Chưa điểm danh</span>';
+
+                    let statusClass = 'badge ';
+                    let statusText = dd.TrangThai || 'Chưa xác định';
+
+                    if (statusText.includes('Có mặt') && !statusText.includes('trễ') && !statusText.includes('sớm')) statusClass += 'bg-success';
+                    else if (statusText.includes('Vắng - Về sớm') || statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
+                    else if (statusText.includes('Đi trễ') || statusText.includes('Về sớm')) statusClass += 'bg-danger';
+                    else statusClass += 'bg-secondary';
+
+                    tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${dd.Ten_SinhVien}</strong></td>
                         <td class="mac-col">${dd.MAC}</td>
-                        <td>${dd.Buoi}</td>
-                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : 'N/A'}</td>
-                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : 'Chưa có'}</td>
-                        <td><span class="badge ${statusClass} p-2">${dd.TrangThai}</span></td>
+                        <td><span class="badge bg-info">${dd.Buoi}</span></td>
+                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : '-'}</td>
+                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
+                        <td><strong>${ngayDisplay}</strong></td>
+                        <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
                         <td>
                             <button class="btn btn-sm btn-warning" onclick="editDd('${dd._id}')">Sửa</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
                         </td>
                     </tr>`;
                 });
-            } catch (err) { alert('Lỗi tải điểm danh!'); }
+            } catch (err) {
+                showToast('Lỗi tải điểm danh!', 'danger');
+            }
         }
 
         document.getElementById('diemDanhForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const mac = document.getElementById('macDD').value.toUpperCase();
             const msgDiv = document.getElementById('ddMessage');
-            if (!mac) { msgDiv.innerHTML = '<div class="alert alert-warning">Vui lòng chọn sinh viên!</div>'; return; }
+            if (!mac) return msgDiv.innerHTML = '<div class="alert alert-warning">Chọn sinh viên!</div>';
+
             try {
                 const res = await fetch('http://localhost:5000/diemdanh', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ MAC: mac })
                 });
                 const data = await res.json();
                 msgDiv.innerHTML = res.ok ?
-                    `<div class="alert alert-success">${data.message} - ${data.Ten_SinhVien}: ${data.TrangThai} (${data.Buoi})</div>` :
+                    `<div class="alert alert-success">${data.message} - ${data.Ten_SinhVien}: ${data.TrangThai}</div>` :
                     `<div class="alert alert-danger">${data.message}</div>`;
                 if (res.ok) { loadDiemDanh(); e.target.reset(); document.getElementById('macDD').value = ''; }
             } catch (err) { msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>'; }
         });
 
         function editDd(id) { alert('Sửa điểm danh ID: ' + id); }
-        function deleteDd(id) { if (confirm('Xóa?')) fetch(`http://localhost:5000/diemdanh/${id}`, { method: 'DELETE' }).then(() => loadDiemDanh()); }
+        function deleteDd(id) {
+            if (confirm('Xóa?')) {
+                fetch(`http://localhost:5000/diemdanh/${id}`, { method: 'DELETE' })
+                    .then(() => loadDiemDanh());
+            }
+        }
 
         // ========== CÀI ĐẶT ==========
         async function loadCaiDat() {
@@ -525,7 +736,8 @@
                 tbody.innerHTML = '';
                 data.forEach(cd => {
                     tbody.innerHTML += `<tr>
-                        <td>${cd._id}</td><td>${cd.Buoi}</td><td>${cd.TD_BatDau}</td><td>${cd.TD_KetThuc}</td>
+                        <td><small>${cd._id.slice(-6)}</small></td>
+                        <td>${cd.Buoi}</td><td>${cd.TD_BatDau}</td><td>${cd.TD_KetThuc}</td>
                         <td>${cd.TD_Reset || 'N/A'}</td><td>${cd.Mail || 'N/A'}</td><td>${cd.TG_DiTre || 0}</td>
                         <td>${cd.TD_Setting ? new Date(cd.TD_Setting).toLocaleString('vi-VN') : 'N/A'}</td>
                         <td><span class="badge ${cd.Is_active ? 'bg-success' : 'bg-secondary'}">${cd.Is_active ? 'Hoạt động' : 'Không hoạt động'}</span></td>
@@ -535,7 +747,7 @@
                         </td>
                     </tr>`;
                 });
-            } catch (err) { alert('Lỗi tải cài đặt!'); }
+            } catch (err) { showToast('Lỗi tải cài đặt!', 'danger'); }
         }
 
         document.getElementById('addCaiDatForm').addEventListener('submit', async (e) => {
@@ -547,11 +759,20 @@
             const tdReset = document.getElementById('tdReset').value;
             const mail = document.getElementById('mailCD').value;
             const tgDiTre = parseInt(document.getElementById('tgDiTre').value) || 0;
-            if (tdBatDau >= tdKetThuc) { alert('Thời gian bắt đầu phải trước kết thúc!'); return; }
-            const url = editId ? `http://localhost:5000/caidat/${editId}` : `http://localhost:5000/caidat`;
+
+            if (tdBatDau >= tdKetThuc) return alert('Thời gian bắt đầu phải trước kết thúc!');
+
+            const url = editId ? `http://localhost:5000/caidat/${editId}` : 'http://localhost:5000/caidat';
             const method = editId ? 'PUT' : 'POST';
-            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ Buoi: buoi, TD_BatDau: tdBatDau, TD_KetThuc: tdKetThuc, TD_Reset: tdReset, Mail: mail, TG_DiTre: tgDiTre }) });
-            loadCaiDat(); resetCdForm();
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Buoi: buoi, TD_BatDau: tdBatDau, TD_KetThuc: tdKetThuc, TD_Reset: tdReset, Mail: mail, TG_DiTre: tgDiTre })
+            });
+
+            loadCaiDat();
+            resetCdForm();
         });
 
         function editCd(id, buoi, tdBatDau, tdKetThuc, tdReset, mail, tgDiTre) {
@@ -573,8 +794,9 @@
         }
 
         function deleteCd(id) {
-            if (confirm('Xác nhận xóa?')) {
-                fetch(`http://localhost:5000/caidat/${id}`, { method: 'DELETE' }).then(() => loadCaiDat());
+            if (confirm('Xóa cài đặt này?')) {
+                fetch(`http://localhost:5000/caidat/${id}`, { method: 'DELETE' })
+                    .then(() => loadCaiDat());
             }
         }
 
