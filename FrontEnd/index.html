@@ -90,6 +90,40 @@
     </style>
 </head>
 <body>
+    <!-- Modal Sửa Điểm Danh (ĐÃ DI CHUYỂN VÀO TRONG BODY) -->
+    <div class="modal fade" id="editDiemDanhModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Sửa Điểm Danh</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="editDiemDanhForm">
+              <input type="hidden" id="editDdId">
+              <div class="mb-3">
+                <label class="form-label">Tên SV</label>
+                <input type="text" class="form-control" id="editTenSV" disabled>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Giờ vào (HH:MM)</label>
+                <input type="text" class="form-control" id="editTDVao" placeholder="09:15" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Giờ ra (HH:MM)</label>
+                <input type="text" class="form-control" id="editTDRa" placeholder="Chưa ra">
+              </div>
+              <div id="editDdMessage"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="button" class="btn btn-primary" onclick="saveEditDiemDanh()">Lưu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Trang đăng nhập -->
     <div id="loginPage" class="page active">
         <div class="login-container">
@@ -294,9 +328,11 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ========== TOÀN CỤC ==========
         let mapSinhVienToMac = {};
+        let editModal;  // Khởi tạo biến global cho modal
 
         // ========== SHOW PAGE ==========
         window.showPage = function(pageName) {
@@ -689,7 +725,7 @@
                         <td><strong>${ngayDisplay}</strong></td>
                         <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-warning" onclick="editDd('${dd._id}')">Sửa</button>
+                            <button class="btn btn-sm btn-warning" onclick="openEditModal('${dd._id}', '${dd.Ten_SinhVien}', '${dd.TD_Vao || ''}', '${dd.TD_Ra || ''}', '${dd.TrangThai}')">Sửa</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
                         </td>
                     </tr>`;
@@ -797,6 +833,78 @@
             if (confirm('Xóa cài đặt này?')) {
                 fetch(`http://localhost:5000/caidat/${id}`, { method: 'DELETE' })
                     .then(() => loadCaiDat());
+            }
+        }
+
+        // ========== MODAL SỬA ĐIỂM DANH (CẬP NHẬT FIX LỖI) ==========
+        function openEditModal(id, tenSV, tdVaoStr, tdRaStr, trangthai) {
+            document.getElementById('editDdId').value = id;
+            document.getElementById('editTenSV').value = tenSV;
+            
+            // Xử lý TD_Vao an toàn
+            let tdVao = '';
+            if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr !== 'undefined' && tdVaoStr.trim() !== '') {
+                const parts = tdVaoStr.split(' ');
+                if (parts.length > 1 && parts[1]) {
+                    tdVao = parts[1].substring(0, 5);
+                }
+            }
+            document.getElementById('editTDVao').value = tdVao;
+            
+            // Xử lý TD_Ra an toàn
+            let tdRa = '';
+            if (tdRaStr && tdRaStr !== 'null' && tdRaStr !== 'undefined' && tdRaStr.trim() !== '') {
+                const parts = tdRaStr.split(' ');
+                if (parts.length > 1 && parts[1]) {
+                    tdRa = parts[1].substring(0, 5);
+                }
+            }
+            document.getElementById('editTDRa').value = tdRa;
+            
+            editModal = new bootstrap.Modal(document.getElementById('editDiemDanhModal'));
+            editModal.show();
+        }
+
+        async function saveEditDiemDanh() {
+            const id = document.getElementById('editDdId').value;
+            const tdVao = document.getElementById('editTDVao').value.trim();
+            const tdRa = document.getElementById('editTDRa').value.trim();
+            const msgDiv = document.getElementById('editDdMessage');
+
+            if (!tdVao || !/^\d{2}:\d{2}$/.test(tdVao)) {
+                msgDiv.innerHTML = '<div class="alert alert-danger">Giờ vào không hợp lệ (HH:MM)!</div>';
+                return;
+            }
+
+            const body = { TD_Vao: tdVao };
+            if (tdRa && /^\d{2}:\d{2}$/.test(tdRa)) {
+                body.TD_Ra = tdRa;
+            }
+
+            try {
+                console.log('Sending PUT to:', `http://localhost:5000/diemdanh/${id}`, 'Body:', body);  // Debug log
+                const res = await fetch(`http://localhost:5000/diemdanh/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                console.log('Response:', res.ok, data);  // Debug log
+
+                msgDiv.innerHTML = res.ok
+                    ? `<div class="alert alert-success">${data.message}</div>`
+                    : `<div class="alert alert-danger">${data.message}</div>`;
+
+                if (res.ok) {
+                    setTimeout(() => {
+                        editModal.hide();
+                        loadDiemDanh();
+                        document.getElementById('editDiemDanhForm').reset();
+                    }, 1500);
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);  // Debug log
+                msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối! Kiểm tra backend có chạy không (python run.py).</div>';
             }
         }
 
