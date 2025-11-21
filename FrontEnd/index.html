@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WiFi Attendance</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Thư viện xuất Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4); }
         .sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); height: 100vh; position: fixed; width: 250px; z-index: 1000; }
         .nav-link { color: white !important; }
         .nav-link:hover, .nav-link.active { background: rgba(255, 255, 255, 0.2); }
@@ -35,7 +39,6 @@
         }
         @keyframes fadeInOut {0%, 100% { opacity: 0; transform: translateY(20px); }15%, 85% { opacity: 1; transform: translateY(0); }}
 
-        /* Toggle */
         .status-toggle {
             position: relative;
             display: inline-block;
@@ -65,7 +68,6 @@
         input:checked + .slider {background-color: #28a745;}
         input:checked + .slider:before {transform: translateX(20px);}
 
-        /* Thanh cuộn */
         .table-scroll-wrapper {
             max-height: 500px;
             overflow-y: auto;
@@ -90,7 +92,7 @@
     </style>
 </head>
 <body>
-    <!-- Modal Sửa Điểm Danh (ĐÃ DI CHUYỂN VÀO TRONG BODY) -->
+    <!-- Modal Sửa Điểm Danh -->
     <div class="modal fade" id="editDiemDanhModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -167,7 +169,7 @@
                     <h2>Chào mừng đến với Hệ thống Điểm danh WiFi</h2>
                     <p>Quản lý điểm danh sinh viên qua kết nối WiFi một cách tự động và chính xác.</p>
                     <div class="row mt-4" id="statsRow">
-                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="svCount">0</h5><p>Sinh viên</p></div></div>
+                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="svCount">0</h5><p>Sinh viên</pSUPER></div></div>
                         <div class="col-md-3"><div class="card text-center p-3"><h5 id="tbCount">0</h5><p>Thiết bị</p></div></div>
                         <div class="col-md-3"><div class="card text-center p-3"><h5 id="attendanceRate">0%</h5><p>Tỷ lệ Có mặt</p></div></div>
                         <div class="col-md-3"><div class="card text-center p-3"><h5 id="currentSession">Sáng</h5><p>Buổi Hiện tại</p></div></div>
@@ -204,7 +206,6 @@
             </div>
         </div>
 
-        <!-- Toast nhẹ -->
         <div id="toastContainer"></div>
 
         <!-- Thiết bị -->
@@ -248,14 +249,14 @@
             </div>
         </div>
 
-        <!-- Điểm danh -->
+        <!-- ĐIỂM DANH - XUẤT EXCEL -->
         <div id="diemdanhPage" class="page">
             <div class="main-content">
                 <h2>Điểm danh</h2>
                 <div class="form-add">
                     <h5>Điểm danh Thủ công</h5>
                     <p class="text-muted small">Chọn sinh viên → MAC tự động → Ghi nhận điểm danh.</p>
-                    <form id="diemDanhForm">
+                    <form id="diemDanhForm" class="d-inline">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label>Chọn Sinh viên</label>
@@ -270,6 +271,9 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Ghi nhận Điểm danh</button>
                     </form>
+                    <button type="button" class="btn btn-success ms-3" onclick="exportToExcel()">
+                         Xuất File Danh Sách
+                    </button>
                     <div id="ddMessage" class="mt-2"></div>
                 </div>
                 <div class="table-container">
@@ -330,11 +334,60 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ========== TOÀN CỤC ==========
-        let mapSinhVienToMac = {};
-        let editModal;  // Khởi tạo biến global cho modal
+        // ======================== HÀM XUẤT EXCEL ========================
+        function exportToExcel() {
+            const table = document.getElementById('diemDanhTable');
+            const rows = table.querySelectorAll('tbody tr');
+            if (rows.length === 0) {
+                showToast('Chưa có dữ liệu điểm danh để xuất!', 'warning');
+                return;
+            }
 
-        // ========== SHOW PAGE ==========
+            const data = [];
+            data.push(['STT', 'Tên Sinh Viên', 'MAC', 'Buổi', 'Ngày', 'Giờ Vào', 'Giờ Ra', 'Trạng Thái']);
+
+            rows.forEach((row, index) => {
+                const cols = row.querySelectorAll('td');
+                const tenSV = cols[0].textContent.trim();
+                const mac = cols[1].textContent.trim();
+                const buoi = cols[2].textContent.trim();
+                const gioVao = cols[3].textContent.trim();
+                const gioRa = cols[4].innerHTML.includes('Chưa ra') ? 'Chưa ra' : cols[4].textContent.trim();
+                const ngay = cols[5].querySelector('strong') ? cols[5].querySelector('strong').textContent.trim() : cols[5].textContent.trim();
+                const trangThai = cols[6].textContent.trim();
+
+                data.push([index + 1, tenSV, mac, buoi, ngay, gioVao, gioRa, trangThai]);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            ws['!cols'] = [
+                { wch: 6 }, { wch: 25 }, { wch: 18 }, { wch: 10 },
+                { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 22 }
+            ];
+
+            const headerStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4F46E5" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+            for (let i = 0; i < 8; i++) {
+                const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
+                if (cell) cell.s = headerStyle;
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, "DiemDanh");
+            const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+            XLSX.writeFile(wb, `DanhSach_DiemDanh_${today}.xlsx`);
+            showToast('Đã xuất file Excel thành công!', 'success');
+        }
+
+        // ======================== BIẾN TOÀN CỤC ========================
+        let mapSinhVienToMac = {};
+        let editModal;
+
+        // ======================== HIỂN THỊ TRANG ========================
         window.showPage = function(pageName) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const page = document.getElementById(pageName + 'Page');
@@ -352,7 +405,7 @@
             else if (pageName === 'caidat') loadCaiDat();
         };
 
-        // ========== ĐĂNG NHẬP ==========
+        // ======================== ĐĂNG NHẬP ========================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -391,7 +444,7 @@
             document.getElementById('loginForm').reset();
         }
 
-        // ========== TOAST ==========
+        // ======================== TOAST ========================
         function showToast(msg, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -403,7 +456,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ========== DASHBOARD ==========
+        // ======================== DASHBOARD ========================
         async function loadDashboardStats() {
             try {
                 const [svRes, tbRes, ddRes] = await Promise.all([
@@ -427,7 +480,7 @@
             } catch (err) { console.error(err); }
         }
 
-        // ========== SINH VIÊN ==========
+        // ======================== SINH VIÊN ========================
         async function loadSinhVien() {
             try {
                 const res = await fetch('http://localhost:5000/sinhvien');
@@ -512,7 +565,7 @@
             }
         }
 
-        // ========== THIẾT BỊ ==========
+        // ======================== THIẾT BỊ ========================
         async function loadSinhVienForDropdown() {
             try {
                 const res = await fetch('http://localhost:5000/sinhvien');
@@ -581,10 +634,9 @@
             }
         }
 
-        // FIX HOÀN TOÀN LỖI ObjectId
         function editThietBi(button) {
             const id = button.getAttribute('data-id');
-            const svId = button.getAttribute('data-svid');  // ObjectId nguyên bản
+            const svId = button.getAttribute('data-svid');
             const mac = button.getAttribute('data-mac');
             const ten = button.getAttribute('data-ten');
 
@@ -593,17 +645,10 @@
             document.getElementById('tenTB').value = ten;
 
             loadSinhVienForDropdown().then(() => {
-                const select = document.getElementById('svIdTB');
-                select.value = svId;
-                if (select.value !== svId) {
-                    for (let opt of select.options) {
-                        if (opt.value === svId) { opt.selected = true; break; }
-                    }
-                }
+                document.getElementById('svIdTB').value = svId;
             });
 
             document.querySelector('#addThietBiForm button[type="submit"]').textContent = 'Cập nhật';
-            showToast('Đã tải thông tin thiết bị', 'success');
         }
 
         document.getElementById('addThietBiForm').addEventListener('submit', async (e) => {
@@ -653,7 +698,7 @@
             }
         }
 
-        // ========== ĐIỂM DANH ==========
+        // ======================== ĐIỂM DANH ========================
         async function loadSinhVienForDiemDanh() {
             try {
                 const [svRes, tbRes] = await Promise.all([
@@ -665,7 +710,7 @@
 
                 mapSinhVienToMac = {};
                 thietBi.forEach(tb => {
-                    if (tb.SinhVien_id && !mapSinhVienToMac[tb.SinhVien_id]) {
+                    if (tb.SinhVien_id && tb.Is_active && !mapSinhVienToMac[tb.SinhVien_id]) {
                         mapSinhVienToMac[tb.SinhVien_id] = tb.MAC;
                     }
                 });
@@ -694,24 +739,18 @@
                 const tbody = document.querySelector('#diemDanhTable tbody');
                 tbody.innerHTML = '';
 
-                data.sort((a, b) => {
-                    const timeA = a.TD_Vao ? new Date(a.TD_Vao) : 0;
-                    const timeB = b.TD_Vao ? new Date(b.TD_Vao) : 0;
-                    return timeB - timeA;
-                });
+                data.sort((a, b) => new Date(b.TD_Vao || 0) - new Date(a.TD_Vao || 0));
 
                 data.forEach(dd => {
                     const ngayDisplay = dd.TD_Vao 
-                        ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', { 
-                            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' 
-                          }).replace(',', '')
-                        : '<span class="text-muted">Chưa điểm danh</span>';
+                        ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }).replace(',', '')
+                        : 'Chưa điểm danh';
 
                     let statusClass = 'badge ';
                     let statusText = dd.TrangThai || 'Chưa xác định';
 
                     if (statusText.includes('Có mặt') && !statusText.includes('trễ') && !statusText.includes('sớm')) statusClass += 'bg-success';
-                    else if (statusText.includes('Vắng - Về sớm') || statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
+                    else if (statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
                     else if (statusText.includes('Đi trễ') || statusText.includes('Về sớm')) statusClass += 'bg-danger';
                     else statusClass += 'bg-secondary';
 
@@ -720,8 +759,8 @@
                         <td><strong>${dd.Ten_SinhVien}</strong></td>
                         <td class="mac-col">${dd.MAC}</td>
                         <td><span class="badge bg-info">${dd.Buoi}</span></td>
-                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : '-'}</td>
-                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
+                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : '<small class="text-muted">Chưa ra</small>'}</td>
                         <td><strong>${ngayDisplay}</strong></td>
                         <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
                         <td>
@@ -755,15 +794,14 @@
             } catch (err) { msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>'; }
         });
 
-        function editDd(id) { alert('Sửa điểm danh ID: ' + id); }
         function deleteDd(id) {
-            if (confirm('Xóa?')) {
+            if (confirm('Xóa bản ghi điểm danh này?')) {
                 fetch(`http://localhost:5000/diemdanh/${id}`, { method: 'DELETE' })
                     .then(() => loadDiemDanh());
             }
         }
 
-        // ========== CÀI ĐẶT ==========
+        // ======================== CÀI ĐẶT ========================
         async function loadCaiDat() {
             try {
                 const res = await fetch('http://localhost:5000/caidat');
@@ -836,31 +874,25 @@
             }
         }
 
-        // ========== MODAL SỬA ĐIỂM DANH (CẬP NHẬT FIX LỖI) ==========
-        function openEditModal(id, tenSV, tdVaoStr, tdRaStr, trangthai) {
+        // ======================== MODAL SỬA ĐIỂM DANH ========================
+        function openEditModal(id, tenSV, tdVaoStr, tdRaStr) {
             document.getElementById('editDdId').value = id;
             document.getElementById('editTenSV').value = tenSV;
-            
-            // Xử lý TD_Vao an toàn
+
             let tdVao = '';
-            if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr !== 'undefined' && tdVaoStr.trim() !== '') {
+            if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr.trim() !== '') {
                 const parts = tdVaoStr.split(' ');
-                if (parts.length > 1 && parts[1]) {
-                    tdVao = parts[1].substring(0, 5);
-                }
+                if (parts.length > 1) tdVao = parts[1].substring(0, 5);
             }
             document.getElementById('editTDVao').value = tdVao;
-            
-            // Xử lý TD_Ra an toàn
+
             let tdRa = '';
-            if (tdRaStr && tdRaStr !== 'null' && tdRaStr !== 'undefined' && tdRaStr.trim() !== '') {
+            if (tdRaStr && tdRaStr !== 'null' && tdRaStr.trim() !== '') {
                 const parts = tdRaStr.split(' ');
-                if (parts.length > 1 && parts[1]) {
-                    tdRa = parts[1].substring(0, 5);
-                }
+                if (parts.length > 1) tdRa = parts[1].substring(0, 5);
             }
             document.getElementById('editTDRa').value = tdRa;
-            
+
             editModal = new bootstrap.Modal(document.getElementById('editDiemDanhModal'));
             editModal.show();
         }
@@ -882,14 +914,12 @@
             }
 
             try {
-                console.log('Sending PUT to:', `http://localhost:5000/diemdanh/${id}`, 'Body:', body);  // Debug log
                 const res = await fetch(`http://localhost:5000/diemdanh/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
                 const data = await res.json();
-                console.log('Response:', res.ok, data);  // Debug log
 
                 msgDiv.innerHTML = res.ok
                     ? `<div class="alert alert-success">${data.message}</div>`
@@ -899,16 +929,14 @@
                     setTimeout(() => {
                         editModal.hide();
                         loadDiemDanh();
-                        document.getElementById('editDiemDanhForm').reset();
                     }, 1500);
                 }
             } catch (err) {
-                console.error('Fetch error:', err);  // Debug log
-                msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối! Kiểm tra backend có chạy không (python run.py).</div>';
+                msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối backend!</div>';
             }
         }
 
-        // ========== KHỞI TẠO ==========
+        // ======================== KHỞI TẠO ========================
         document.addEventListener('DOMContentLoaded', function() {
             if (localStorage.getItem('loggedIn') === 'true') {
                 document.getElementById('loginPage').style.display = 'none';
