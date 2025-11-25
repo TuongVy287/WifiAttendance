@@ -375,13 +375,13 @@ async def diemdanh(request):
 
         new_record = {
             "TD_Vao": now,
-            "TD_Ra": now,
+            "TD_Ra": None,
             "Buoi": buoi,
             "MAC": mac,
             "Ten_SinhVien": ten_sv,
             "TrangThai": trangthai_checkin, # Trạng thái ban đầu chỉ là Check-in status
         }
-        await insert_one(diemdanh_col, new_record)
+        await insert_one(diemdanh_col, new_record)  
         return web.json_response({
             "Ten_SinhVien": ten_sv,
             "TrangThai": trangthai_checkin, # Trả về trạng thái Check-in
