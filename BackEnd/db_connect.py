@@ -6,7 +6,7 @@ from datetime import datetime
 
 # ====== KẾT NỐI MONGODB ======
 client = AsyncIOMotorClient("mongodb+srv://admin:Cisco%40c302@cluster0.vmxlvao.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-db = client["Wifi"]
+db = client["Wifi_v2"]
 
 # Collections
 sinhvien_col = db["SinhVien"]

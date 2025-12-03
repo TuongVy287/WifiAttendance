@@ -10,7 +10,7 @@ from db_connect import sinhvien_col, thietbi_col, diemdanh_col, caidat_col
 NETWORK_CIDR = "192.168.1.0/24"
 PING_TIMEOUT_MS = 1000
 CONCURRENCY = 100
-SCAN_INTERVAL = 10  # giây
+SCAN_INTERVAL = 5  # giây
 
 # ----------------- REGEX -----------------
 RE_ARP_WIN = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9A-Fa-f\-:]{17})\s+", re.M)
