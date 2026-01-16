@@ -9,7 +9,11 @@ from db_connect import sinhvien_col, thietbi_col, diemdanh_col, caidat_col
 # ----------------- CẤU HÌNH -----------------
 NETWORK_CIDR = "192.168.1.0/24"  # Thay đổi theo mạng WiFi của bạn
 PING_TIMEOUT_MS = 1000
+<<<<<<< HEAD
 CONCURRENCY = 1000
+=======
+CONCURRENCY = 100
+>>>>>>> a886f56df892a890103cebcd6eb505dd38a44f76
 SCAN_INTERVAL = 5  # giây
 
 # ----------------- REGEX -----------------
