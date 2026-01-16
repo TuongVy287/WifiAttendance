@@ -62,7 +62,7 @@ async def cleanup_background_tasks(app):
 if __name__ == "__main__":
     print("Khởi động WiFi Attendance System...")
     print("Frontend: file://..." + FRONTEND_PATH.replace("\\", "/"))
-    print("API: http://localhost:5000")
+    print("API: http://192.168.10.29:5000")
     print("Mở trình duyệt ngay lập tức...\n")
 
     # Tạo app
@@ -74,9 +74,9 @@ if __name__ == "__main__":
     app.on_cleanup.append(cleanup_background_tasks)
 
     # Mở trình duyệt NGAY LẬP TỨC
-    webbrowser.open('http://localhost:5000')
+    webbrowser.open('http://192.168.10.29:5000')
 
     try:
-        web.run_app(app, host='localhost', port=5000)
+        web.run_app(app, port=5000)
     except KeyboardInterrupt:
         print("\nDừng server...")

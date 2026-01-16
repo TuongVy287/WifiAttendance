@@ -7,10 +7,10 @@ from bson import ObjectId
 from db_connect import sinhvien_col, thietbi_col, diemdanh_col, caidat_col
 
 # ----------------- CẤU HÌNH -----------------
-NETWORK_CIDR = "192.168.1.0/24"
+NETWORK_CIDR = "192.168.1.0/24"  # Thay đổi theo mạng WiFi của bạn
 PING_TIMEOUT_MS = 1000
-CONCURRENCY = 100
-SCAN_INTERVAL = 10  # giây
+CONCURRENCY = 1000
+SCAN_INTERVAL = 5  # giây
 
 # ----------------- REGEX -----------------
 RE_ARP_WIN = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9A-Fa-f\-:]{17})\s+", re.M)
@@ -21,9 +21,9 @@ RE_ARP_UNIX = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+\S+\s+((?:[0-9
 def xac_dinh_buoi():
     """Xác định buổi học theo giờ hiện tại"""
     gio = datetime.now().hour
-    if 6 <= gio < 12:
+    if 6 <= gio < 11:
         return "Sáng"
-    elif 12 <= gio < 17:
+    elif 11 <= gio < 17:
         return "Chiều"
     else:
         return "Tối"
