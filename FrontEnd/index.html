@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,36 +8,150 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
-        .btn-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; }
-        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4); }
-        .sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); height: 100vh; position: fixed; width: 250px; z-index: 1000; }
-        .nav-link { color: white !important; }
-        .nav-link:hover, .nav-link.active { background: rgba(255, 255, 255, 0.2); }
-        .main-content { margin-left: 250px; padding: 2rem; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .welcome-card, .form-add, .table-container { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 2rem; }
-        .mac-col { font-family: monospace; font-weight: bold; color: #667eea; }
-        .login-container { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; width: 100%; max-width: 400px; }
-        .wifi-icon { font-size: 3rem; color: #667eea; text-align: center; margin-bottom: 1rem; }
-        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-left: 0; }.table-scroll-wrapper {max-height: 400px;} }
-       
-        #toastContainer {position: fixed;bottom: 20px;right: 20px;z-index: 9999;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            position: fixed;
+            width: 250px;
+            z-index: 1000;
+        }
+
+        .nav-link {
+            color: white !important;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .welcome-card,
+        .form-add,
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .mac-col {
+            font-family: monospace;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .login-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .wifi-icon {
+            font-size: 3rem;
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .table-scroll-wrapper {
+                max-height: 400px;
+            }
+        }
+
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
         .toast-item {
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 12px 20px;
             border-radius: 8px;
             margin-top: 10px;
             animation: fadeInOut 3s forwards;
             font-size: 0.95rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
-        @keyframes fadeInOut {0%, 100% { opacity: 0; transform: translateY(20px); }15%, 85% { opacity: 1; transform: translateY(0); }}
+
+        @keyframes fadeInOut {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            15%,
+            85% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Toggle */
         .status-toggle {
             position: relative;
@@ -44,15 +159,25 @@
             width: 44px;
             height: 24px;
         }
-        .status-toggle input {opacity: 0;width: 0;height: 0;}
+
+        .status-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background-color: #ccc;
             transition: .3s;
             border-radius: 34px;
         }
+
         .slider:before {
             position: absolute;
             content: "";
@@ -64,8 +189,15 @@
             transition: .3s;
             border-radius: 50%;
         }
-        input:checked + .slider {background-color: #28a745;}
-        input:checked + .slider:before {transform: translateX(20px);}
+
+        input:checked+.slider {
+            background-color: #28a745;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
         /* Thanh cuộn */
         .table-scroll-wrapper {
             max-height: 500px;
@@ -75,54 +207,74 @@
             border-radius: 8px;
             margin-top: 10px;
         }
-        .table-scroll-wrapper::-webkit-scrollbar {width: 8px;height: 8px;}
-        .table-scroll-wrapper::-webkit-scrollbar-track {background: #f1f1f1; border-radius: 10px;}
-        .table-scroll-wrapper::-webkit-scrollbar-thumb {background: #c0c0c0;border-radius: 10px;}
-        .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {background: #a8a8a8;}
-        .table-scroll-wrapper table {margin-bottom: 0;}
+
+        .table-scroll-wrapper::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-scroll-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .table-scroll-wrapper::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border-radius: 10px;
+        }
+
+        .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .table-scroll-wrapper table {
+            margin-bottom: 0;
+        }
+
         .table-scroll-wrapper thead th {
             position: sticky;
             top: 0;
             background: #667eea !important;
             color: white !important;
             z-index: 10;
-            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
+
 <body>
     <!-- Modal Sửa Điểm Danh (ĐÃ DI CHUYỂN VÀO TRONG BODY) -->
     <div class="modal fade" id="editDiemDanhModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Sửa Điểm Danh</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <form id="editDiemDanhForm">
-              <input type="hidden" id="editDdId">
-              <div class="mb-3">
-                <label class="form-label">Tên SV</label>
-                <input type="text" class="form-control" id="editTenSV" disabled>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Giờ vào (HH:MM)</label>
-                <input type="text" class="form-control" id="editTDVao" placeholder="09:15" required>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Giờ ra (HH:MM)</label>
-                <input type="text" class="form-control" id="editTDRa" placeholder="Chưa ra">
-              </div>
-              <div id="editDdMessage"></div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-            <button type="button" class="btn btn-primary" onclick="saveEditDiemDanh()">Lưu</button>
-          </div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sửa Điểm Danh</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editDiemDanhForm">
+                        <input type="hidden" id="editDdId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên SV</label>
+                            <input type="text" class="form-control" id="editTenSV" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giờ vào (HH:MM)</label>
+                            <input type="text" class="form-control" id="editTDVao" placeholder="09:15" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giờ ra (HH:MM)</label>
+                            <input type="text" class="form-control" id="editTDRa" placeholder="Chưa ra">
+                        </div>
+                        <div id="editDdMessage"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditDiemDanh()">Lưu</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
     <!-- Trang đăng nhập -->
     <div id="loginPage" class="page active">
@@ -148,11 +300,16 @@
     <!-- Nội dung chính -->
     <div id="mainApp" style="display: none;">
         <div class="sidebar">
-            <div class="p-3 text-white"><h4>WiFi Attendance</h4></div>
+            <div class="p-3 text-white">
+                <h4>WiFi Attendance</h4>
+            </div>
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="#" onclick="showPage('dashboard')">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('sinhvien')">Danh sách Sinh viên</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('thietbi')">Danh sách Thiết bị</a></li>
+                <li class="nav-item"><a class="nav-link active" href="#" onclick="showPage('dashboard')">Dashboard</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('sinhvien')">Danh sách Sinh viên</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('thietbi')">Danh sách Thiết bị</a>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('diemdanh')">Điểm danh</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('caidat')">Cài đặt</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Đăng xuất</a></li>
@@ -165,12 +322,33 @@
                     <h2>Chào mừng đến với Hệ thống Điểm danh WiFi</h2>
                     <p>Quản lý điểm danh sinh viên qua kết nối WiFi một cách tự động và chính xác.</p>
                     <div class="row mt-4" id="statsRow">
-                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="svCount">0</h5><p>Sinh viên</p></div></div>
-                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="tbCount">0</h5><p>Thiết bị</p></div></div>
-                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="attendanceRate">0%</h5><p>Tỷ lệ Có mặt</p></div></div>
-                        <div class="col-md-3"><div class="card text-center p-3"><h5 id="currentSession">Sáng</h5><p>Buổi Hiện tại</p></div></div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <h5 id="svCount">0</h5>
+                                <p>Sinh viên</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <h5 id="tbCount">0</h5>
+                                <p>Thiết bị</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <h5 id="attendanceRate">0%</h5>
+                                <p>Tỷ lệ Có mặt</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <h5 id="currentSession">Sáng</h5>
+                                <p>Buổi Hiện tại</p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="scanStatus" class="mt-3 alert alert-info" style="display: none;">Quét WiFi đang hoạt động...</div>
+                    <div id="scanStatus" class="mt-3 alert alert-info" style="display: none;">Quét WiFi đang hoạt
+                        động...</div>
                 </div>
             </div>
         </div>
@@ -183,8 +361,10 @@
                     <form id="addSinhVienForm">
                         <input type="hidden" id="editSvId">
                         <div class="row">
-                            <div class="col-md-6 mb-3"><label>Tên</label><input type="text" class="form-control" id="tenSV" required></div>
-                            <div class="col-md-6 mb-3"><label>MSSV</label><input type="text" class="form-control" id="mssvSV" required></div>
+                            <div class="col-md-6 mb-3"><label>Tên</label><input type="text" class="form-control"
+                                    id="tenSV" required></div>
+                            <div class="col-md-6 mb-3"><label>MSSV</label><input type="text" class="form-control"
+                                    id="mssvSV" required></div>
                         </div>
                         <button type="submit" class="btn btn-success">Thêm</button>
                         <button type="button" class="btn btn-secondary ms-2" onclick="resetSvForm()">Hủy</button>
@@ -193,7 +373,15 @@
                 <div class="table-container">
                     <div class="table-scroll-wrapper">
                         <table class="table table-striped table-hover" id="sinhVienTable">
-                            <thead class="table-dark"><tr><th>ID</th><th>Tên</th><th>MSSV</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên</th>
+                                    <th>MSSV</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
                             <tbody></tbody>
                         </table>
                     </div>
@@ -219,7 +407,8 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label>MAC</label>
-                                <input type="text" class="form-control" id="macTB" required placeholder="AA:BB:CC:DD:EE:FF">
+                                <input type="text" class="form-control" id="macTB" required
+                                    placeholder="AA:BB:CC:DD:EE:FF">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label>Tên Thiết bị</label>
@@ -234,7 +423,15 @@
                     <div class="table-scroll-wrapper">
                         <table class="table table-striped table-hover" id="thietBiTable">
                             <thead class="table-dark">
-                                <tr><th>ID</th><th>Sinh viên</th><th>MAC</th><th>Tên TB</th><th>Thời gian</th><th>Trạng thái</th><th>Hành động</th></tr>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Sinh viên</th>
+                                    <th>MAC</th>
+                                    <th>Tên TB</th>
+                                    <th>Thời gian</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -263,7 +460,8 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Ghi nhận Điểm danh</button>
-                        <button type="button" class="btn btn-success ms-3" onclick="exportToExcel()">Xuất File Danh Sách</button>
+                        <button type="button" class="btn btn-success ms-3" onclick="exportToExcel()">Xuất File Danh
+                            Sách</button>
                     </form>
                     <div id="ddMessage" class="mt-2"></div>
                 </div>
@@ -279,7 +477,16 @@
                     <div class="table-scroll-wrapper">
                         <table class="table table-striped table-hover" id="diemDanhTable">
                             <thead class="table-dark">
-                                <tr><th>Tên SV</th><th>MAC</th><th>Buổi</th><th>Vào</th><th>Ra</th><th>Ngày</th><th>Trạng thái</th><th>Hành động</th></tr>
+                                <tr>
+                                    <th>Tên SV</th>
+                                    <th>MAC</th>
+                                    <th>Buổi</th>
+                                    <th>Vào</th>
+                                    <th>Ra</th>
+                                    <th>Ngày</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -304,13 +511,18 @@
                                     <option value="Tối">Tối</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 mb-3"><label>Bắt đầu</label><input type="time" class="form-control" id="tdBatDau" required></div>
-                            <div class="col-md-3 mb-3"><label>Kết thúc</label><input type="time" class="form-control" id="tdKetThuc" required></div>
-                            <div class="col-md-3 mb-3"><label>Reset</label><input type="time" class="form-control" id="tdReset"></div>
+                            <div class="col-md-3 mb-3"><label>Bắt đầu</label><input type="time" class="form-control"
+                                    id="tdBatDau" required></div>
+                            <div class="col-md-3 mb-3"><label>Kết thúc</label><input type="time" class="form-control"
+                                    id="tdKetThuc" required></div>
+                            <div class="col-md-3 mb-3"><label>Reset</label><input type="time" class="form-control"
+                                    id="tdReset"></div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3"><label>Email</label><input type="email" class="form-control" id="mailCD"></div>
-                            <div class="col-md-6 mb-3"><label>Đi trễ (phút)</label><input type="number" class="form-control" id="tgDiTre" min="0" value="0"></div>
+                            <div class="col-md-6 mb-3"><label>Email</label><input type="email" class="form-control"
+                                    id="mailCD"></div>
+                            <div class="col-md-6 mb-3"><label>Đi trễ (phút)</label><input type="number"
+                                    class="form-control" id="tgDiTre" min="0" value="0"></div>
                         </div>
                         <button type="submit" class="btn btn-success">Thêm</button>
                         <button type="button" class="btn btn-secondary ms-2" onclick="resetCdForm()">Hủy</button>
@@ -320,7 +532,18 @@
                     <div class="table-scroll-wrapper">
                         <table class="table table-striped table-hover" id="caiDatTable">
                             <thead class="table-dark">
-                                <tr><th>ID</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Reset</th><th>Email</th><th>Đi trễ</th><th>Thời gian</th><th>TT</th><th>Hành động</th></tr>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Buổi</th>
+                                    <th>Bắt đầu</th>
+                                    <th>Kết thúc</th>
+                                    <th>Reset</th>
+                                    <th>Email</th>
+                                    <th>Đi trễ</th>
+                                    <th>Thời gian</th>
+                                    <th>TT</th>
+                                    <th>Hành động</th>
+                                </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -335,7 +558,7 @@
         let mapSinhVienToMac = {};
         let editModal; // Khởi tạo biến global cho modal
         // ========== SHOW PAGE ==========
-        window.showPage = function(pageName) {
+        window.showPage = function (pageName) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const page = document.getElementById(pageName + 'Page');
             if (page) page.classList.add('active');
@@ -390,7 +613,7 @@
             const toast = document.createElement('div');
             toast.className = 'toast-item';
             toast.style.background = type === 'danger' ? 'rgba(220,53,69,0.9)' :
-                                    type === 'warning' ? 'rgba(255,193,7,0.9)' : 'rgba(40,167,69,0.9)';
+                type === 'warning' ? 'rgba(255,193,7,0.9)' : 'rgba(40,167,69,0.9)';
             toast.innerHTML = msg;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -646,7 +869,7 @@
                 });
             } catch (err) { console.error(err); }
         }
-        document.getElementById('svSelectDD')?.addEventListener('change', function() {
+        document.getElementById('svSelectDD')?.addEventListener('change', function () {
             document.getElementById('macDD').value = mapSinhVienToMac[this.value] || '';
         });
         async function loadDiemDanh() {
@@ -665,7 +888,7 @@
                     const ngayDisplay = dd.TD_Vao
                         ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', {
                             weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
-                          }).replace(',', '')
+                        }).replace(',', '')
                         : '<span class="text-muted">Chưa điểm danh</span>';
                     let statusClass = 'badge ';
                     let statusText = dd.TrangThai || 'Chưa xác định';
@@ -796,7 +1019,7 @@
         function openEditModal(id, tenSV, tdVaoStr, tdRaStr, trangthai) {
             document.getElementById('editDdId').value = id;
             document.getElementById('editTenSV').value = tenSV;
-           
+
             // Xử lý TD_Vao an toàn
             let tdVao = '';
             if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr !== 'undefined' && tdVaoStr.trim() !== '') {
@@ -806,7 +1029,7 @@
                 }
             }
             document.getElementById('editTDVao').value = tdVao;
-           
+
             // Xử lý TD_Ra an toàn
             let tdRa = '';
             if (tdRaStr && tdRaStr !== 'null' && tdRaStr !== 'undefined' && tdRaStr.trim() !== '') {
@@ -816,7 +1039,7 @@
                 }
             }
             document.getElementById('editTDRa').value = tdRa;
-           
+
             editModal = new bootstrap.Modal(document.getElementById('editDiemDanhModal'));
             editModal.show();
         }
@@ -858,7 +1081,7 @@
             }
         }
         // ========== KHỞI TẠO ==========
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             if (localStorage.getItem('loggedIn') === 'true') {
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
@@ -870,44 +1093,70 @@
         });
         // ======================== HÀM XUẤT EXCEL ========================
         function exportToExcel() {
-            const table = document.getElementById('diemDanhTable');
-            const rows = table.querySelectorAll('tbody tr');
-            if (rows.length === 0) {
-                showToast('Chưa có dữ liệu điểm danh để xuất!', 'warning');
-                return;
+            // Lấy ngày người dùng chọn (nếu không chọn thì dùng hôm nay)
+            const filterNgayInput = document.getElementById('filterNgay');
+            let selectedDate = filterNgayInput.value;
+            const today = new Date().toISOString().split('T')[0];
+            if (!selectedDate) {
+                selectedDate = today;
+                showToast('Không chọn ngày → xuất mặc định ngày hôm nay', 'info');
             }
+            const table = document.getElementById('diemDanhTable');
+            const allRows = table.querySelectorAll('tbody tr');
             const data = [];
-            data.push(['STT', 'Tên Sinh Viên', 'MAC', 'Buổi', 'Ngày', 'Giờ Vào', 'Giờ Ra', 'Trạng Thái']);
-            rows.forEach((row, index) => {
+            // Chỉ giữ 6 cột theo yêu cầu: STT, Tên, Buổi, Giờ Vào, Giờ Ra, Trạng Thái
+            data.push(['STT', 'Tên Sinh Viên', 'Buổi', 'Giờ Vào', 'Giờ Ra', 'Trạng Thái']);
+            let stt = 1;
+            let hasData = false;
+            allRows.forEach(row => {
+                const ngayRow = row.dataset.ngay;
+                if (ngayRow !== selectedDate) return;   // Chỉ lấy đúng ngày được chọn
                 const cols = row.querySelectorAll('td');
                 const tenSV = cols[0].textContent.trim();
-                const mac = cols[1].textContent.trim();
                 const buoi = cols[2].textContent.trim();
                 const gioVao = cols[3].textContent.trim();
-                const gioRa = cols[4].innerHTML.includes('Chưa ra') ? 'Chưa ra' : cols[4].textContent.trim();
-                const ngay = cols[5].querySelector('strong') ? cols[5].querySelector('strong').textContent.trim() : cols[5].textContent.trim();
+                // Xử lý Giờ Ra
+                const gioRaHtml = cols[4].innerHTML;
+                const gioRa = gioRaHtml.includes('Chưa ra') ? 'Chưa ra' : cols[4].textContent.trim();
                 const trangThai = cols[6].textContent.trim();
-                data.push([index + 1, tenSV, mac, buoi, ngay, gioVao, gioRa, trangThai]);
+                // CHỈ XUẤT những sinh viên:
+                // 1. Đã có checkout (có giờ ra)
+                // 2. Có mặt (không phải Vắng)
+                if (gioRa !== 'Chưa ra' && !trangThai.includes('Vắng')) {
+                    data.push([stt++, tenSV, buoi, gioVao, gioRa, trangThai]);
+                    hasData = true;
+                }
             });
+            if (!hasData) {
+                showToast(`Không có sinh viên nào có mặt & đã checkout ngày ${selectedDate}`, 'warning');
+                return;
+            }
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(data);
+            // Căn độ rộng cột cho đẹp
             ws['!cols'] = [
-                { wch: 6 }, { wch: 25 }, { wch: 18 }, { wch: 10 },
-                { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 22 }
+                { wch: 6 },   // STT
+                { wch: 30 },  // Tên
+                { wch: 10 },  // Buổi
+                { wch: 12 },  // Giờ Vào
+                { wch: 12 },  // Giờ Ra
+                { wch: 25 }   // Trạng Thái
             ];
+            // Style header
             const headerStyle = {
                 font: { bold: true, color: { rgb: "FFFFFF" } },
                 fill: { fgColor: { rgb: "4F46E5" } },
                 alignment: { horizontal: "center", vertical: "center" }
             };
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 6; i++) {
                 const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
                 if (cell) cell.s = headerStyle;
             }
             XLSX.utils.book_append_sheet(wb, ws, "DiemDanh");
-            const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
-            XLSX.writeFile(wb, `DanhSach_DiemDanh_${today}.xlsx`);
-            showToast('Đã xuất file Excel thành công!', 'success');
+            // Tên file = ngày xuất (theo yêu cầu)
+            const fileName = `DanhSach_DiemDanh_${selectedDate}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showToast(`✅ Đã xuất file Excel ngày ${selectedDate} thành công!`, 'success');
         }
     </script>
 </body>
