@@ -307,21 +307,19 @@ RE_ARP_UNIX = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+\S+\s+((?:[0-9
 
 # ----------------- HÀM PHỤ TRỢ -----------------
 async def xac_dinh_buoi(now):
-    """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True).
-    Ưu tiên: Nếu giờ hiện tại nằm trong khoảng TD_BatDau - TD_KetThuc của buổi nào, trả buổi đó.
-    Nếu không, tìm buổi gần nhất tiếp theo (TD_BatDau gần nhất > giờ hiện tại).
-    Nếu không có buổi nào sau, trả None."""
     now_time = now.time()
     active_caidat = []
     async for cd in caidat_col.find({"Is_active": True}):
         try:
             batdau = datetime.strptime(cd["TD_BatDau"], "%H:%M").time()
             ketthuc = datetime.strptime(cd["TD_KetThuc"], "%H:%M").time()
-            # Tạo dict mới để tránh modify origin
+            reset_time = datetime.strptime(cd["TD_Reset"], "%H:%M").time() if cd.get("TD_Reset") else None
             active_caidat.append({
                 "Buoi": cd["Buoi"],
                 "batdau_time": batdau,
-                "ketthuc_time": ketthuc
+                "ketthuc_time": ketthuc,
+                "reset_time": reset_time,
+                "TG_DiTre": int(cd.get("TG_DiTre", 0))
             })
         except (KeyError, ValueError) as e:
             print(f"[LỖI] Bản ghi caidat không hợp lệ: {cd.get('_id')}, lỗi: {e}")
@@ -330,12 +328,27 @@ async def xac_dinh_buoi(now):
         print("[CẢNH BÁO] Không có cài đặt active nào.")
         return None
 
-    # Kiểm tra nếu nằm trong khoảng bất kỳ
+    # Ưu tiên: Nếu trong buổi
     for cd in active_caidat:
         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
             return cd["Buoi"]
 
-    # Nếu không, tìm buổi gần nhất tiếp theo
+    # Nếu sau tất cả, tìm buổi gần nhất TRƯỚC ĐÓ (dựa trên TD_KetThuc hoặc TD_Reset)
+    active_caidat.sort(key=lambda x: x["ketthuc_time"], reverse=True)  # Sort descending để lấy buổi gần nhất trước
+    prev_buoi = None
+    min_diff = float('inf')
+    for cd in active_caidat:
+        if now_time > cd["ketthuc_time"]:
+            diff = (now - datetime.combine(now.date(), cd["ketthuc_time"])).total_seconds()
+            if diff < min_diff:
+                min_diff = diff
+                prev_buoi = cd["Buoi"]
+
+    if prev_buoi:
+        print(f"[INFO] Giờ {now_time} sau buổi, gán vào buổi gần nhất trước đó: {prev_buoi}")
+        return prev_buoi
+
+    # Fallback: Tìm buổi gần nhất tiếp theo (logic cũ)
     active_caidat.sort(key=lambda x: x["batdau_time"])
     next_buoi = None
     min_diff = float('inf')
