@@ -200,14 +200,7 @@ async def delete_caidat(request):
 # ===============================
 # 🔹 4. ĐIỂM DANH (ĐÃ SỬA LOGIC)
 # ===============================
-def xac_dinh_buoi():
-    hour = datetime.now().hour
-    if hour < 12:
-        return "Sáng"
-    elif hour < 15:
-        return "Chiều"
-    else:
-        return "Tối"
+
     
 @routes.get("/diemdanh")
 async def get_all_diemdanh(request):
@@ -281,9 +274,9 @@ async def update_diemdanh(request):
     ketthuc_dt = datetime.combine(today, TD_KetThuc)
 
     trangthai_vao = "Có mặt"
-    if td_vao_dt > batdau_dt + TG_DiTre:
+    if td_vao_dt < batdau_dt + TG_DiTre:
         trangthai_vao = "Đi trễ"
-    elif td_vao_dt > ketthuc_dt:
+    elif td_vao_dt < ketthuc_dt:
         trangthai_vao = "Vắng"
 
     # Tính trạng thái Check-out

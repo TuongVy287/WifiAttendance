@@ -88,6 +88,29 @@
             z-index: 10;
             box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
         }
+        /* Thêm vào phần <style> để cải thiện responsive trên mobile */
+        @media (max-width: 576px) {
+            body { font-size: 0.9rem; }
+            .login-card { padding: 1rem; max-width: 100%; }
+            .main-content { padding: 1rem; }
+            .form-add { padding: 1rem; }
+            .table th, .table td { padding: 0.5rem; font-size: 0.85rem; }
+            .btn { width: 100%; margin-bottom: 0.5rem; }
+            .row > div { margin-bottom: 1rem; }
+            .welcome-card h2 { font-size: 1.5rem; }
+            .wifi-icon { font-size: 2rem; }
+            #statsRow .card { margin-bottom: 1rem; }
+            .sidebar .nav-link { font-size: 1rem; padding: 0.75rem 1rem; }
+            .table-scroll-wrapper { max-height: 300px; }
+            /* Cho table điểm danh, thêm wrap text nếu cần */
+            .table td { white-space: normal; word-wrap: break-word; }
+            /* Ẩn một số cột không cần thiết trên mobile nếu muốn, ví dụ ẩn MAC nếu có nhưng ở student view không có */
+        }
+        @media (max-width: 768px) {
+            /* Đã có, nhưng bổ sung */
+            .filter-container .row > div { margin-bottom: 1rem; }
+            .form-add button { width: 100%; margin-top: 0.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -123,6 +146,28 @@
           </div>
         </div>
       </div>
+    </div>
+    <!-- Trang Xem Điểm Danh cho Sinh Viên (Thêm trước div id="loginPage") -->
+    <div id="studentViewPage" class="page active">
+        <div class="login-container"> <!-- Sử dụng kiểu tương tự login để trung tâm -->
+            <div class="login-card" style="max-width: 90%; width: 100%; padding: 2rem;">
+                <div class="wifi-icon">WiFi</div>
+                <h2 class="text-center mb-4">Danh Sách Điểm Danh</h2>
+                <div class="table-container">
+                    <div class="table-scroll-wrapper">
+                        <table class="table table-striped table-hover" id="studentDiemDanhTable">
+                            <thead class="table-dark">
+                                <tr><th>Tên SV</th><th>Buổi</th><th>Vào</th><th>Ra</th><th>Ngày</th><th>Trạng thái</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="text-end mt-3">
+                    <button class="btn btn-primary" onclick="showLoginPage()">Đăng Nhập Admin</button>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- Trang đăng nhập -->
     <div id="loginPage" class="page active">
@@ -909,6 +954,72 @@
             XLSX.writeFile(wb, `DanhSach_DiemDanh_${today}.xlsx`);
             showToast('Đã xuất file Excel thành công!', 'success');
         }
+        // ========== THÊM VÀO CUỐI PHẦN SCRIPT ==========
+
+        // Function để hiển thị trang đăng nhập
+        function showLoginPage() {
+            document.getElementById('studentViewPage').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('loginPage').classList.add('active');
+        }
+
+        // Function load dữ liệu cho trang sinh viên (tương tự loadDiemDanh nhưng loại bỏ cột MAC và hành động)
+        async function loadStudentDiemDanh() {
+            try {
+                const res = await fetch('http://192.168.10.29:5000/diemdanh');
+                const data = await res.json();
+                const tbody = document.querySelector('#studentDiemDanhTable tbody');
+                tbody.innerHTML = '';
+                data.sort((a, b) => {
+                    const timeA = a.TD_Vao ? new Date(a.TD_Vao) : 0;
+                    const timeB = b.TD_Vao ? new Date(b.TD_Vao) : 0;
+                    return timeB - timeA;
+                });
+                data.forEach(dd => {
+                    const ngayDisplay = dd.TD_Vao
+                        ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', {
+                            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
+                          }).replace(',', '')
+                        : '<span class="text-muted">Chưa điểm danh</span>';
+                    let statusClass = 'badge ';
+                    let statusText = dd.TrangThai || 'Chưa xác định';
+                    if (statusText.includes('Có mặt') && !statusText.includes('trễ') && !statusText.includes('sớm')) statusClass += 'bg-success';
+                    else if (statusText.includes('Vắng - Về sớm') || statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
+                    else if (statusText.includes('Đi trễ') || statusText.includes('Về sớm')) statusClass += 'bg-danger';
+                    else statusClass += 'bg-secondary';
+                    tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${dd.Ten_SinhVien}</strong></td>
+                        <td><span class="badge bg-info">${dd.Buoi}</span></td>
+                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : '-'}</td>
+                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
+                        <td><strong>${ngayDisplay}</strong></td>
+                        <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
+                    </tr>`;
+                });
+            } catch (err) {
+                showToast('Lỗi tải điểm danh!', 'danger');
+            }
+        }
+
+        // Khởi tạo: Ẩn loginPage ban đầu và load dữ liệu cho studentView
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loginPage').style.display = 'none';
+            loadStudentDiemDanh();
+            // Giữ nguyên các khởi tạo cũ
+            if (localStorage.getItem('loggedIn') === 'true') {
+                document.getElementById('studentViewPage').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                showPage('dashboard');
+            }
+        });
+        // Thêm vào phần script để xử lý responsive nếu cần, ví dụ resize listener
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 576) {
+                // Có thể thêm logic nếu cần, như collapse sidebar tự động
+            }
+        });
     </script>
 </body>
 </html>
