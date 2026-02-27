@@ -39,7 +39,12 @@ async def add_sinhvien(request):
         return web.json_response({"message": f"MSSV '{mssv}' đã tồn tại"}, status=409)
 
     sinhvien = {"Ten": ten, "MSSV": mssv, "Is_active": True}
-    await insert_one(sinhvien_col, sinhvien)
+    inserted_id = await insert_one(sinhvien_col, sinhvien)
+    
+    # ### SỬA MỚI: Sinh viên mới thêm mặc định True, nên nếu có thiết bị (thường không), set true
+    sv_obj_id = ObjectId(inserted_id)
+    await thietbi_col.update_many({"SinhVien_id": sv_obj_id}, {"$set": {"Is_active": True}})
+
     return web.json_response({"message": "Thêm sinh viên thành công"}, status=201)
 
 @routes.put("/sinhvien/{id}")
@@ -47,17 +52,31 @@ async def update_sinhvien(request):
     id = request.match_info["id"]
     data = await request.json()
     await update_one(sinhvien_col, id, data)
+    
+    # ### SỬA MỚI: Lấy sinh viên sau update để biết Is_active mới
+    sv = await sinhvien_col.find_one({"_id": ObjectId(id)})
+    if sv:
+        new_active = sv.get("Is_active", False)
+        sv_obj_id = ObjectId(id)
+        await thietbi_col.update_many({"SinhVien_id": sv_obj_id}, {"$set": {"Is_active": new_active}})
+    
     return web.json_response({"message": "Cập nhật thành công"})
 
 @routes.delete("/sinhvien/{id}")
 async def delete_sinhvien(request):
     id = request.match_info["id"]
+    sv_obj_id = ObjectId(id)
+    
+    # ### SỬA MỚI: Trước khi xóa, set tất cả thiết bị false (vì sinh viên bị xóa ≡ không active)
+    await thietbi_col.update_many({"SinhVien_id": sv_obj_id}, {"$set": {"Is_active": False}})
+    
     await delete_one(sinhvien_col, id)
     return web.json_response({"message": "Xóa thành công"})
 
 # ===============================
 # 🔹 2. THIẾT BỊ
 # ===============================
+
 @routes.post("/thietbi")
 async def add_thietbi(request):
     data = await request.json()
@@ -81,14 +100,16 @@ async def add_thietbi(request):
     if existing_mac:
         return web.json_response({"message": f"MAC '{mac}' đã tồn tại!"}, status=409)
 
+    # ### SỬA MỚI: Deactivate các thiết bị khác, nhưng set new_tb theo Is_active của sinh viên
     await thietbi_col.update_many({"SinhVien_id": sv_obj_id}, {"$set": {"Is_active": False}})
-
+    
+    sv_active = sinhvien.get("Is_active", False)  # Theo trạng thái sinh viên
     new_tb = {
         "SinhVien_id": sv_obj_id,
         "MAC": mac,
         "TD_Them_ThietBi": datetime.now(),
         "Ten_ThietBi": ten_tb,
-        "Is_active": True
+        "Is_active": sv_active  # ### SỬA MỚI: Theo sinh viên, không mặc định True
     }
     await insert_one(thietbi_col, new_tb)
     return web.json_response({"message": "Thêm thiết bị thành công!"}, status=201)
@@ -115,15 +136,18 @@ async def update_thietbi(request):
     if not tb:
         return web.json_response({"message": "Không tìm thấy thiết bị!"}, status=404)
 
-    # if "SinhVien_id" in data:
-    #     return web.json_response({"message": "Không được phép thay đổi SinhVien_id!"}, status=400)
-
     sinhvien_id = tb["SinhVien_id"]
     await thietbi_col.update_many({"SinhVien_id": sinhvien_id, "_id": {"$ne": ObjectId(id)}},
                                   {"$set": {"Is_active": False}})
 
     data["TD_Them_ThietBi"] = datetime.now()
-    data["Is_active"] = True
+    
+    # ### SỬA MỚI: Set Is_active theo sinh viên hiện tại, không mặc định True
+    sinhvien = await sinhvien_col.find_one({"_id": sinhvien_id})
+    if sinhvien:
+        data["Is_active"] = sinhvien.get("Is_active", False)
+    else:
+        data["Is_active"] = False  # Nếu sinh viên không tồn tại
 
     await update_one(thietbi_col, id, data)
     return web.json_response({"message": "Cập nhật thành công!"})
@@ -138,13 +162,14 @@ async def delete_thietbi(request):
     sinhvien_id = tb["SinhVien_id"]
     await delete_one(thietbi_col, id)
 
+    # ### SỬA MỚI: Khi activate latest, set theo Is_active của sinh viên
     latest = await thietbi_col.find_one({"SinhVien_id": sinhvien_id}, sort=[("TD_Them_ThietBi", -1)])
     if latest:
-        await thietbi_col.update_one({"_id": latest["_id"]}, {"$set": {"Is_active": True}})
+        sinhvien = await sinhvien_col.find_one({"_id": sinhvien_id})
+        new_active = sinhvien.get("Is_active", False) if sinhvien else False
+        await thietbi_col.update_one({"_id": latest["_id"]}, {"$set": {"Is_active": new_active}})
 
     return web.json_response({"message": "Xóa thiết bị thành công!"})
-
-
 # ===============================
 # 🔹 3. CÀI ĐẶT
 # ===============================

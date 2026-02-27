@@ -1,266 +1,4 @@
-# import asyncio
-# import ipaddress
-# import platform
-# import re
-# from datetime import datetime, timedelta
-# from bson import ObjectId
-# from db_connect import sinhvien_col, thietbi_col, diemdanh_col, caidat_col
 
-# # ----------------- CẤU HÌNH -----------------
-# NETWORK_CIDR = "192.168.1.0/24"  # Thay đổi theo mạng WiFi của bạn
-# PING_TIMEOUT_MS = 1000
-# CONCURRENCY = 100
-# SCAN_INTERVAL = 5  # giây
-
-# # ----------------- REGEX -----------------
-# RE_ARP_WIN = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9A-Fa-f\-:]{17})\s+", re.M)
-# RE_ARP_UNIX = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+\S+\s+((?:[0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2})", re.M)
-
-
-# # ----------------- HÀM PHỤ TRỢ -----------------
-# async def xac_dinh_buoi(now):
-#     """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True).
-#     Ưu tiên: Nếu giờ hiện tại nằm trong khoảng TD_BatDau - TD_KetThuc của buổi nào, trả buổi đó.
-#     Nếu không, tìm buổi gần nhất tiếp theo (TD_BatDau gần nhất > giờ hiện tại).
-#     Nếu không có buổi nào sau, trả None."""
-#     now_time = now.time()
-#     active_caidat = []
-#     async for cd in caidat_col.find({"Is_active": True}):
-#         try:
-#             batdau = datetime.strptime(cd["TD_BatDau"], "%H:%M").time()
-#             ketthuc = datetime.strptime(cd["TD_KetThuc"], "%H:%M").time()
-#             # Tạo dict mới để tránh modify origin
-#             active_caidat.append({
-#                 "Buoi": cd["Buoi"],
-#                 "batdau_time": batdau,
-#                 "ketthuc_time": ketthuc
-#             })
-#         except (KeyError, ValueError) as e:
-#             print(f"[LỖI] Bản ghi caidat không hợp lệ: {cd.get('_id')}, lỗi: {e}")
-
-#     if not active_caidat:
-#         print("[CẢNH BÁO] Không có cài đặt active nào.")
-#         return None
-
-#     # Kiểm tra nếu nằm trong khoảng bất kỳ
-#     for cd in active_caidat:
-#         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
-#             return cd["Buoi"]
-
-#     # Nếu không, tìm buổi gần nhất tiếp theo
-#     active_caidat.sort(key=lambda x: x["batdau_time"])
-#     next_buoi = None
-#     min_diff = float('inf')
-#     for cd in active_caidat:
-#         if cd["batdau_time"] > now_time:
-#             diff = (datetime.combine(now.date(), cd["batdau_time"]) - now).total_seconds()
-#             if diff < min_diff:
-#                 min_diff = diff
-#                 next_buoi = cd["Buoi"]
-
-#     if next_buoi:
-#         print(f"[INFO] Giờ {now_time} không trong buổi nào, gán vào buổi gần nhất tiếp theo: {next_buoi}")
-#         return next_buoi
-#     else:
-#         print(f"[CẢNH BÁO] Không tìm thấy buổi phù hợp hoặc gần nhất cho giờ {now_time}")
-#         return None
-
-# def parse_arp_output(text):
-#     mapping = {}
-#     for m in RE_ARP_WIN.finditer(text):
-#         ip, mac = m.group(1), m.group(2).replace("-", ":").upper()
-#         mapping[ip] = mac
-#     if not mapping:
-#         for m in RE_ARP_UNIX.finditer(text):
-#             ip, mac = m.group(1), m.group(2).replace("-", ":").upper()
-#             mapping[ip] = mac
-#     return mapping
-
-
-# async def get_arp_table():
-#     cmd = ["arp", "-a"] if platform.system().lower() == "windows" else ["arp", "-n"]
-#     proc = await asyncio.create_subprocess_exec(
-#         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-#     )
-#     out, _ = await proc.communicate()
-#     return parse_arp_output(out.decode(errors="ignore"))
-
-
-# async def ping_ip(ip, sem):
-#     async with sem:
-#         system = platform.system().lower()
-#         if system == "windows":
-#             cmd = ["ping", "-n", "1", "-w", str(PING_TIMEOUT_MS), ip]
-#         else:
-#             cmd = ["ping", "-c", "1", "-W", "1", ip]
-#         proc = await asyncio.create_subprocess_exec(
-#             *cmd,
-#             stdout=asyncio.subprocess.DEVNULL,
-#             stderr=asyncio.subprocess.DEVNULL
-#         )
-#         await proc.communicate()
-#         return proc.returncode == 0
-
-
-# async def ping_subnet(network_cidr):
-#     net = ipaddress.ip_network(network_cidr, strict=False)
-#     hosts = [str(ip) for ip in net.hosts()]
-#     sem = asyncio.Semaphore(CONCURRENCY)
-#     tasks = [ping_ip(ip, sem) for ip in hosts]
-#     results = await asyncio.gather(*tasks)
-#     return [ip for ip, ok in zip(hosts, results) if ok]
-
-
-# # ----------------- XỬ LÝ CHECK-IN -----------------
-# async def checkin(mac, now):
-#     mac = mac.upper()
-#     thietbi = await thietbi_col.find_one({"MAC": mac})
-#     if not thietbi or not thietbi.get("Is_active", False):
-#         return
-
-#     sinhvien = await sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]}) if thietbi.get("SinhVien_id") else None
-#     ten_sv = sinhvien["Ten"] if sinhvien else "Khách"
-
-#     buoi = await xac_dinh_buoi(now)  # Gọi hàm đã sửa
-#     if not buoi:
-#         print(f"[⚠️] Không xác định được buổi cho giờ {now}. Bỏ qua điểm danh.")
-#         return
-
-#     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
-#     if not caidat:
-#         print(f"[⚠️] Không có cài đặt cho buổi {buoi}. Bỏ qua điểm danh.")
-#         return
-
-#     TD_BatDau = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
-#     TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0))) if caidat.get("TG_DiTre") else timedelta(minutes=0)
-
-#     # === Kiểm tra đã có điểm danh trong buổi hôm nay chưa ===
-#     existing = await diemdanh_col.find_one({
-#         "MAC": mac,
-#         "Buoi": buoi,
-#         "TD_Vao": {"$gte": datetime.combine(datetime.today(), datetime.min.time())}
-#     })
-
-#     if existing:
-#         print(f"[CHECK-IN] {ten_sv} ({mac}) đã có điểm danh buổi {buoi}, bỏ qua ghi mới.")
-#         return
-
-#     # === Xác định trạng thái ===
-#     if now <= TD_BatDau:
-#         trangthai = "Có mặt"
-#     elif now <= (TD_BatDau + TG_DiTre):
-#         trangthai = "Đi trễ"
-#     else:
-#         trangthai = "Vắng"
-
-#     new_record = {
-#         "TD_Vao": now,
-#         "TD_Ra": None,
-#         "Buoi": buoi,
-#         "Ngay": datetime.today().strftime("%Y-%m-%d"),
-#         "MAC": mac,
-#         "Ten_SinhVien": ten_sv,
-#         "TrangThai": trangthai
-#     }
-#     await diemdanh_col.insert_one(new_record)
-#     print(f"[CHECK-IN] {ten_sv} ({mac}) - {trangthai} ({buoi})")
-
-
-# # ----------------- XỬ LÝ CHECK-OUT -----------------
-# async def checkout(mac, now):
-#     mac = mac.upper()
-#     buoi = await xac_dinh_buoi(now)  # Gọi hàm đã sửa
-#     if not buoi:
-#         print(f"[⚠️] Không xác định được buổi cho giờ {now}. Bỏ qua checkout.")
-#         return
-
-#     today = datetime.today().strftime("%Y-%m-%d")
-
-#     # === Tìm bản ghi cùng ngày & cùng buổi ===
-#     record = await diemdanh_col.find_one({
-#         "MAC": mac,
-#         "Buoi": buoi,
-#         "Ngay": today
-#     })
-
-#     if not record:
-#         # Nếu không có bản ghi cùng buổi hoặc ngày → thêm mới
-#         await checkin(mac, now)
-#         print(f"[CHECK-OUT] {mac} chưa có bản ghi hôm nay, tạo bản ghi mới.")
-#         return
-
-#     # Nếu sinh viên vắng thì không cập nhật TD_Ra
-#     if record.get("TrangThai") == "Vắng":
-#         print(f"[CHECK-OUT] {record['Ten_SinhVien']} ({mac}) - 'Vắng', không ghi TD_Ra.")
-#         return
-
-#     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
-#     if not caidat:
-#         print(f"[⚠️] Không tìm thấy cài đặt buổi {buoi}.")
-#         return
-
-#     TD_KetThuc = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
-#     trangthai_checkin = record.get("TrangThai", "")
-#     trangthai_checkout = trangthai_checkin
-
-#     if now < TD_KetThuc and trangthai_checkin not in ["Vắng", "Về sớm"]:
-#         trangthai_checkout = "Về sớm"
-
-#     # === Ghi đè trạng thái thay vì cộng dồn ===
-#     if trangthai_checkout != trangthai_checkin:
-#         base_status = trangthai_checkin.split(" - ")[0]
-#         trangthai_ket_hop = f"{base_status} - {trangthai_checkout}"
-#     else:
-#         trangthai_ket_hop = trangthai_checkin
-
-#     # === Cập nhật thời gian ra ===
-#     await diemdanh_col.update_one(
-#         {"_id": record["_id"]},
-#         {"$set": {"TD_Ra": now, "TrangThai": trangthai_ket_hop}}
-#     )
-
-#     print(f"[CHECK-OUT] {record['Ten_SinhVien']} ({mac}) - {trangthai_ket_hop} ({buoi})")
-
-# # ----------------- QUÉT & CẬP NHẬT -----------------
-# async def update_from_scan():
-#     now = datetime.now()
-#     online_ips = await ping_subnet(NETWORK_CIDR)
-#     arp_table = await get_arp_table()
-#     online_macs = {arp_table[ip].upper() for ip in online_ips if ip in arp_table}
-
-#     # Online → checkin
-#     for ip in online_ips:
-#         mac = arp_table.get(ip)
-#         if mac:
-#             thietbi = await thietbi_col.find_one({"MAC": mac})
-#             if thietbi:
-#                 # Nếu Is_active = False thì chuyển sang True và checkin
-#                 if not thietbi.get("Is_active", False):
-#                     await thietbi_col.update_one({"_id": thietbi["_id"]}, {"$set": {"Is_active": True}})
-#                     await checkin(mac, now)
-
-#     # Offline → checkout
-#     async for tb in thietbi_col.find({"Is_active": True}):
-#         mac = tb.get("MAC", "").upper()
-#         if mac and mac not in online_macs:
-#             await thietbi_col.update_one({"_id": tb["_id"]}, {"$set": {"Is_active": False}})
-#             await checkout(mac, now)
-
-#     print(f"[{now.strftime('%H:%M:%S')}] ✅ Quét xong {len(online_ips)} IP online, {len(online_macs)} MAC hợp lệ.")
-
-
-# # ----------------- CHẠY QUÉT ĐỊNH KỲ -----------------
-# async def periodic_scan():
-#     while True:
-#         try:
-#             await update_from_scan()
-#         except Exception as e:
-#             print("❌ Lỗi khi quét:", e)
-#         await asyncio.sleep(SCAN_INTERVAL)
-
-# ------------------------------------------------------------------------------------------------------------------
-#                   PHAN CACH 
-# ------------------------------------------------------------------------------------------------------------------
 
 # import asyncio
 # import ipaddress
@@ -282,17 +20,13 @@
 
 # # ----------------- HÀM PHỤ TRỢ -----------------
 # async def xac_dinh_buoi(now):
-#     """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True).
-#     Ưu tiên: Nếu giờ hiện tại nằm trong khoảng TD_BatDau - TD_KetThuc của buổi nào, trả buổi đó.
-#     Nếu không, tìm buổi gần nhất tiếp theo (TD_BatDau gần nhất > giờ hiện tại).
-#     Nếu không có buổi nào sau, trả None."""
+#     """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True)."""
 #     now_time = now.time()
 #     active_caidat = []
 #     async for cd in caidat_col.find({"Is_active": True}):
 #         try:
 #             batdau = datetime.strptime(cd["TD_BatDau"], "%H:%M").time()
 #             ketthuc = datetime.strptime(cd["TD_KetThuc"], "%H:%M").time()
-#             # Thêm TD_Reset time
 #             reset_time = datetime.strptime(cd["TD_Reset"], "%H:%M").time() if cd.get("TD_Reset") else None
 #             active_caidat.append({
 #                 "Buoi": cd["Buoi"],
@@ -308,12 +42,10 @@
 #         print("[CẢNH BÁO] Không có cài đặt active nào.")
 #         return None
 
-#     # Kiểm tra nếu nằm trong khoảng bất kỳ
 #     for cd in active_caidat:
 #         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
 #             return cd["Buoi"]
 
-#     # Nếu không, tìm buổi gần nhất tiếp theo
 #     active_caidat.sort(key=lambda x: x["batdau_time"])
 #     next_buoi = None
 #     min_diff = float('inf')
@@ -375,23 +107,22 @@
 
 # # ----------------- XỬ LÝ AUTO CHECK-OUT TẠI TD_RESET -----------------
 # async def auto_checkout_at_reset(now, buoi):
-#     """Force check-out tất cả record đang check-in (TD_Ra=None) tại TD_Reset."""
 #     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
 #     if not caidat or not caidat.get("TD_Reset"):
 #         return
 
 #     reset_time = datetime.combine(now.date(), datetime.strptime(caidat["TD_Reset"], "%H:%M").time())
 #     if now < reset_time:
-#         return  # Chưa đến giờ reset
+#         return
 
 #     today = now.strftime("%Y-%m-%d")
 #     async for record in diemdanh_col.find({
 #         "Buoi": buoi,
 #         "Ngay": today,
-#         "TD_Ra": None  # Chỉ những đang check-in
+#         "TD_Ra": None
 #     }):
 #         mac = record["MAC"]
-#         await checkout(mac, reset_time, is_auto=True)  # Gọi checkout với thời gian reset, đánh dấu auto
+#         await checkout(mac, reset_time, is_auto=True)
 #     print(f"[AUTO CHECK-OUT] Đã force check-out tất cả tại TD_Reset cho buổi {buoi}")
 
 # # ----------------- XỬ LÝ CHECK-IN -----------------
@@ -399,6 +130,7 @@
 #     mac = mac.upper()
 #     thietbi = await thietbi_col.find_one({"MAC": mac})
 #     if not thietbi or not thietbi.get("Is_active", False):
+#         print(f"[DEBUG CHECK-IN] Thiết bị {mac} không tồn tại hoặc không active. Bỏ qua.")
 #         return
 
 #     sinhvien = await sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]}) if thietbi.get("SinhVien_id") else None
@@ -416,8 +148,8 @@
 
 #     TD_BatDau = datetime.combine(now.date(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
 #     TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0)))
+#     print(f"[DEBUG CHECK-IN] TD_BatDau: {TD_BatDau}, TG_DiTre: {TG_DiTre}, now: {now}")
 
-#     # Kiểm tra record tồn tại cho hôm nay + buổi
 #     today = now.strftime("%Y-%m-%d")
 #     existing = await diemdanh_col.find_one({
 #         "MAC": mac,
@@ -426,12 +158,13 @@
 #     })
 
 #     if existing:
+#         print(f"[DEBUG CHECK-IN] Tìm thấy record existing cho {mac}: TD_Ra = {existing.get('TD_Ra')}, TrangThai = {existing.get('TrangThai')}")
 #         if existing.get("TD_Ra") is None:
 #             print(f"[CHECK-IN] {ten_sv} ({mac}) đã check-in, bỏ qua (đang kết nối).")
-#             return  # Đã check-in và đang kết nối, bỏ qua
+#             return
 #         else:
-#             # Reconnect: Reset TD_Ra về None và reset TrangThai về trạng thái check-in gốc
-#             trangthai_goc = existing.get("TrangThai", "").split(" - ")[0]  # Lấy phần đầu tiên
+#             # Reconnect: Reset TD_Ra về None và TrangThai về trạng thái check-in gốc từ TrangThai_CheckIn
+#             trangthai_goc = existing.get("TrangThai_CheckIn", existing.get("TrangThai", "").split(" - ")[0])
 #             await diemdanh_col.update_one(
 #                 {"_id": existing["_id"]},
 #                 {"$set": {"TD_Ra": None, "TrangThai": trangthai_goc}}
@@ -439,7 +172,8 @@
 #             print(f"[RECONNECT] {ten_sv} ({mac}) reconnect - Reset TD_Ra về None và TrangThai về '{trangthai_goc}' ({buoi})")
 #             return
 
-#     # Tạo mới nếu chưa có
+#     # Tạo mới nếu chưa có (giữ logic gốc: muộn > TD_BatDau + TG_DiTre = "Vắng")
+#     print(f"[DEBUG CHECK-IN] Không tìm thấy record, tạo mới.")
 #     if now <= TD_BatDau:
 #         trangthai = "Có mặt"
 #     elif now <= (TD_BatDau + TG_DiTre):
@@ -454,7 +188,8 @@
 #         "Ngay": today,
 #         "MAC": mac,
 #         "Ten_SinhVien": ten_sv,
-#         "TrangThai": trangthai
+#         "TrangThai": trangthai,
+#         "TrangThai_CheckIn": trangthai  # Lưu trạng thái gốc
 #     }
 #     await diemdanh_col.insert_one(new_record)
 #     print(f"[CHECK-IN] {ten_sv} ({mac}) - {trangthai} ({buoi})")
@@ -484,21 +219,30 @@
 #         return
 
 #     TD_KetThuc = datetime.combine(now.date(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
-#     trangthai_checkin = record.get("TrangThai", "")
-#     trangthai_checkout = trangthai_checkin
+#     trangthai_checkin = record.get("TrangThai_CheckIn", record.get("TrangThai", ""))  # Sử dụng TrangThai_CheckIn nếu có, fallback TrangThai
+#     td_vao = record["TD_Vao"]
+#     TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0)))
 
-#     if now < TD_KetThuc and trangthai_checkin not in ["Vắng"]:
-#         trangthai_checkout = "Về sớm"
+#     # Tính thời gian ở lớp
+#     time_in_class = now - td_vao
 
-#     # Nếu auto reset, có thể override trangthai_checkout thành "Kết thúc buổi" hoặc giữ nguyên
-#     if is_auto:
-#         trangthai_checkout = "Kết thúc buổi" if trangthai_checkout != "Về sớm" else "Về sớm"
-
-#     # Ghi đè trạng thái
-#     if trangthai_checkout != trangthai_checkin:
-#         trangthai_ket_hop = f"{trangthai_checkin} - {trangthai_checkout}"
+#     # Logic mới: Nếu thời gian ở lớp < TG_DiTre → override thành "Vắng"
+#     if time_in_class < TG_DiTre:
+#         trangthai_ket_hop = "Vắng"
+#         print(f"[CHECK-OUT] {record['Ten_SinhVien']} ({mac}) - Thời gian ở lớp {time_in_class} < TG_DiTre → override thành 'Vắng'")
 #     else:
-#         trangthai_ket_hop = trangthai_checkin
+#         # Logic cũ: Chỉ thêm "Về sớm" nếu áp dụng
+#         trangthai_checkout = trangthai_checkin
+#         if now < TD_KetThuc and trangthai_checkin not in ["Vắng"]:
+#             trangthai_checkout = "Về sớm"
+
+#         if is_auto:
+#             trangthai_checkout = "Kết thúc buổi" if trangthai_checkout != "Về sớm" else "Về sớm"
+
+#         if trangthai_checkout != trangthai_checkin:
+#             trangthai_ket_hop = f"{trangthai_checkin} - {trangthai_checkout}"
+#         else:
+#             trangthai_ket_hop = trangthai_checkin
 
 #     await diemdanh_col.update_one(
 #         {"_id": record["_id"]},
@@ -513,23 +257,20 @@
 #     now = datetime.now()
 #     buoi = await xac_dinh_buoi(now)
 #     if buoi:
-#         await auto_checkout_at_reset(now, buoi)  # Check auto reset trước scan
+#         await auto_checkout_at_reset(now, buoi)
 
 #     online_ips = await ping_subnet(NETWORK_CIDR)
 #     arp_table = await get_arp_table()
 #     online_macs = {arp_table[ip].upper() for ip in online_ips if ip in arp_table}
 
-#     # Duyệt tất cả thiết bị active trong DB
 #     async for tb in thietbi_col.find({"Is_active": True}):
 #         mac = tb.get("MAC", "").upper()
 #         if not mac:
 #             continue
 
 #         if mac in online_macs:
-#             # Online: Check-in hoặc reconnect (reset TD_Ra)
 #             await checkin(mac, now)
 #         else:
-#             # Offline: Check-out nếu đang check-in
 #             await checkout(mac, now)
 
 #     print(f"[{now.strftime('%H:%M:%S')}] ✅ Quét xong {len(online_ips)} IP online, {len(online_macs)} MAC hợp lệ.")
@@ -542,13 +283,9 @@
 #         except Exception as e:
 #             print("❌ Lỗi khi quét:", e)
 #         await asyncio.sleep(SCAN_INTERVAL)
-
-
 # ------------------------------------------------------------------------------------------------------------------
 #                   PHAN CACH 
 # ------------------------------------------------------------------------------------------------------------------
-
-
 import asyncio
 import ipaddress
 import platform
@@ -567,22 +304,24 @@ SCAN_INTERVAL = 5  # giây
 RE_ARP_WIN = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9A-Fa-f\-:]{17})\s+", re.M)
 RE_ARP_UNIX = re.compile(r"^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+\S+\s+((?:[0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2})", re.M)
 
+
 # ----------------- HÀM PHỤ TRỢ -----------------
 async def xac_dinh_buoi(now):
-    """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True)."""
+    """Xác định buổi học dựa trên dữ liệu từ bảng caidat (Is_active: True).
+    Ưu tiên: Nếu giờ hiện tại nằm trong khoảng TD_BatDau - TD_KetThuc của buổi nào, trả buổi đó.
+    Nếu không, tìm buổi gần nhất tiếp theo (TD_BatDau gần nhất > giờ hiện tại).
+    Nếu không có buổi nào sau, trả None."""
     now_time = now.time()
     active_caidat = []
     async for cd in caidat_col.find({"Is_active": True}):
         try:
             batdau = datetime.strptime(cd["TD_BatDau"], "%H:%M").time()
             ketthuc = datetime.strptime(cd["TD_KetThuc"], "%H:%M").time()
-            reset_time = datetime.strptime(cd["TD_Reset"], "%H:%M").time() if cd.get("TD_Reset") else None
+            # Tạo dict mới để tránh modify origin
             active_caidat.append({
                 "Buoi": cd["Buoi"],
                 "batdau_time": batdau,
-                "ketthuc_time": ketthuc,
-                "reset_time": reset_time,
-                "TG_DiTre": int(cd.get("TG_DiTre", 0))
+                "ketthuc_time": ketthuc
             })
         except (KeyError, ValueError) as e:
             print(f"[LỖI] Bản ghi caidat không hợp lệ: {cd.get('_id')}, lỗi: {e}")
@@ -591,10 +330,12 @@ async def xac_dinh_buoi(now):
         print("[CẢNH BÁO] Không có cài đặt active nào.")
         return None
 
+    # Kiểm tra nếu nằm trong khoảng bất kỳ
     for cd in active_caidat:
         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
             return cd["Buoi"]
 
+    # Nếu không, tìm buổi gần nhất tiếp theo
     active_caidat.sort(key=lambda x: x["batdau_time"])
     next_buoi = None
     min_diff = float('inf')
@@ -623,6 +364,7 @@ def parse_arp_output(text):
             mapping[ip] = mac
     return mapping
 
+
 async def get_arp_table():
     cmd = ["arp", "-a"] if platform.system().lower() == "windows" else ["arp", "-n"]
     proc = await asyncio.create_subprocess_exec(
@@ -630,6 +372,7 @@ async def get_arp_table():
     )
     out, _ = await proc.communicate()
     return parse_arp_output(out.decode(errors="ignore"))
+
 
 async def ping_ip(ip, sem):
     async with sem:
@@ -646,6 +389,7 @@ async def ping_ip(ip, sem):
         await proc.communicate()
         return proc.returncode == 0
 
+
 async def ping_subnet(network_cidr):
     net = ipaddress.ip_network(network_cidr, strict=False)
     hosts = [str(ip) for ip in net.hosts()]
@@ -654,7 +398,8 @@ async def ping_subnet(network_cidr):
     results = await asyncio.gather(*tasks)
     return [ip for ip, ok in zip(hosts, results) if ok]
 
-# ----------------- XỬ LÝ AUTO CHECK-OUT TẠI TD_RESET -----------------
+
+# --------------- XỬ LÝ AUTO CHECK-OUT TẠI TD_RESET -----------------
 async def auto_checkout_at_reset(now, buoi):
     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
     if not caidat or not caidat.get("TD_Reset"):
@@ -671,8 +416,8 @@ async def auto_checkout_at_reset(now, buoi):
         "TD_Ra": None
     }):
         mac = record["MAC"]
-        await checkout(mac, reset_time, is_auto=True)
-    print(f"[AUTO CHECK-OUT] Đã force check-out tất cả tại TD_Reset cho buổi {buoi}")
+        await checkout(mac, reset_time, is_auto=True)  # Ghi TD_Ra = reset_time
+    print(f"[AUTO CHECK-OUT] Đã force check-out tất cả tại TD_Reset cho buổi {buoi} với giờ ra: {reset_time.strftime('%H:%M')}")
 
 # ----------------- XỬ LÝ CHECK-IN -----------------
 async def checkin(mac, now):
@@ -767,13 +512,16 @@ async def checkout(mac, now, is_auto=False):
         print(f"[⚠️] Không tìm thấy cài đặt buổi {buoi}.")
         return
 
+    TD_BatDau = datetime.combine(now.date(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
     TD_KetThuc = datetime.combine(now.date(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
     trangthai_checkin = record.get("TrangThai_CheckIn", record.get("TrangThai", ""))  # Sử dụng TrangThai_CheckIn nếu có, fallback TrangThai
     td_vao = record["TD_Vao"]
     TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0)))
 
-    # Tính thời gian ở lớp
-    time_in_class = now - td_vao
+    # ### SỬA MỚI: Tính time_in_class từ TD_BatDau nếu td_vao < TD_BatDau, và cap tại TD_KetThuc nếu now > TD_KetThuc
+    effective_start = max(td_vao, TD_BatDau)  # Bắt đầu tính từ TD_BatDau nếu check-in sớm
+    effective_end = min(now, TD_KetThuc) if is_auto else now  # Nếu auto, cap tại TD_KetThuc
+    time_in_class = effective_end - effective_start
 
     # Logic mới: Nếu thời gian ở lớp < TG_DiTre → override thành "Vắng"
     if time_in_class < TG_DiTre:
@@ -795,11 +543,11 @@ async def checkout(mac, now, is_auto=False):
 
     await diemdanh_col.update_one(
         {"_id": record["_id"]},
-        {"$set": {"TD_Ra": now, "TrangThai": trangthai_ket_hop}}
+        {"$set": {"TD_Ra": now, "TrangThai": trangthai_ket_hop}}  # Đảm bảo ghi TD_Ra = now (reset_time cho auto)
     )
 
     prefix = "[AUTO CHECK-OUT]" if is_auto else "[CHECK-OUT]"
-    print(f"{prefix} {record['Ten_SinhVien']} ({mac}) - {trangthai_ket_hop} ({buoi})")
+    print(f"{prefix} {record['Ten_SinhVien']} ({mac}) - {trangthai_ket_hop} ({buoi}) với giờ ra: {now.strftime('%H:%M')}, thời gian ở lớp: {time_in_class}")
 
 # ----------------- QUÉT & CẬP NHẬT -----------------
 async def update_from_scan():
