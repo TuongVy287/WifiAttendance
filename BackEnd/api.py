@@ -225,7 +225,6 @@ async def delete_caidat(request):
 # ===============================
 # 🔹 4. ĐIỂM DANH (ĐÃ SỬA LOGIC)
 # ===============================
-
     
 @routes.get("/diemdanh")
 async def get_all_diemdanh(request):
@@ -263,6 +262,7 @@ async def update_diemdanh(request):
     # Lấy dữ liệu mới từ request
     td_vao_str = data.get("TD_Vao")  # format: "HH:MM"
     td_ra_str = data.get("TD_Ra")    # có thể null
+    ly_do = data.get("LyDo", "")     # Thêm lý do
     buoi = record["Buoi"]
 
     # Sửa lỗi: Lấy ngày từ "Ngay" hoặc từ "TD_Vao" nếu thiếu
@@ -317,11 +317,18 @@ async def update_diemdanh(request):
     if trangthai_ra:
         trangthai_ket_hop += f" - {trangthai_ra}"
 
+    # Nếu có lý do (thủ công), override trạng thái thành "Có mặt" và set TD_Ra nếu null
+    if ly_do.strip():
+        trangthai_ket_hop = "Có mặt"
+        if not td_ra_dt:
+            td_ra_dt = ketthuc_dt
+
     # Cập nhật bản ghi
     update_data = {
         "TD_Vao": td_vao_dt,
         "TD_Ra": td_ra_dt,
-        "TrangThai": trangthai_ket_hop
+        "TrangThai": trangthai_ket_hop,
+        "LyDo": ly_do
     }
 
     await diemdanh_col.update_one({"_id": obj_id}, {"$set": update_data})
@@ -345,6 +352,7 @@ async def delete_diemdanh(request):
 async def diemdanh(request):
     data = await request.json()
     mac = data.get("MAC")
+    ly_do = data.get("LyDo")   # ← THÊM MỚI: Lý do thủ công
 
     if not mac:
         return web.json_response({"message": "Thiếu địa chỉ MAC!"}, status=400)
@@ -381,6 +389,29 @@ async def diemdanh(request):
         "TD_Vao": {"$gte": start_of_today}
     })
 
+    # ==================== ĐIỂM DANH THỦ CÔNG ====================
+    if not record and ly_do:   # ← Chỉ áp dụng khi có LyDo (thủ công)
+        new_record = {
+            "TD_Vao": now,
+            "TD_Ra": TD_KetThuc,           # ← Mặc định giờ ra = TD_Kết thúc buổi
+            "Buoi": buoi,
+            "MAC": mac,
+            "Ten_SinhVien": ten_sv,
+            "TrangThai": "Có mặt",         # ← Mặc định "Có mặt"
+            "LyDo": ly_do                  # ← Lưu lý do
+        }
+        await insert_one(diemdanh_col, new_record)  
+        return web.json_response({
+            "Ten_SinhVien": ten_sv,
+            "TrangThai": "Có mặt",
+            "Buoi": buoi,
+            "TD_Vao": now.strftime("%H:%M:%S"),
+            "TD_Ra": TD_KetThuc.strftime("%H:%M:%S"),
+            "LyDo": ly_do,
+            "message": "Điểm danh thủ công thành công!"
+        }, status=201)
+    
+    # ==================== ĐIỂM DANH TỰ ĐỘNG ====================
     # TRƯỜNG HỢP 1: CHƯA CÓ BẢN GHI (CHECK-IN LẦN ĐẦU)
     if not record:
         trangthai_checkin = ""
@@ -398,6 +429,7 @@ async def diemdanh(request):
             "MAC": mac,
             "Ten_SinhVien": ten_sv,
             "TrangThai": trangthai_checkin, # Trạng thái ban đầu chỉ là Check-in status
+            "LyDo": ""  # Mặc định rỗng cho tự động
         }
         await insert_one(diemdanh_col, new_record)  
         return web.json_response({
@@ -469,7 +501,6 @@ async def diemdanh(request):
             "TD_Ra": now.strftime("%H:%M:%S"),
             "message": message
         }, status=200)
-    
 
 
 # ===============================

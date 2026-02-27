@@ -504,9 +504,17 @@
                                 <input type="text" class="form-control" id="macDD" readonly>
                             </div>
                         </div>
+                        
+                        <!-- ==================== THÊM MỚI: Lý do bắt buộc ==================== -->
+                        <div class="mb-3">
+                            <label class="form-label">Lý do điểm danh thủ công <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="lyDoDD" 
+                                   placeholder="Nhập lý do (bắt buộc)" required>
+                        </div>
+                        <!-- ================================================================== -->
+    
                         <button type="submit" class="btn btn-primary">Ghi nhận Điểm danh</button>
-                        <button type="button" class="btn btn-success ms-3" onclick="exportToExcel()">Xuất File Danh
-                            Sách</button>
+                        <button type="button" class="btn btn-success ms-3" onclick="exportToExcel()">Xuất File Danh Sách</button>
                     </form>
                     <div id="ddMessage" class="mt-2"></div>
                 </div>
@@ -961,23 +969,37 @@
                 showToast('Lỗi tải điểm danh!', 'danger');
             }
         }
+        // ==================== SỬA SUBMIT FORM ĐIỂM DANH THỦ CÔNG ====================
         document.getElementById('diemDanhForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const mac = document.getElementById('macDD').value.toUpperCase();
+            const lyDo = document.getElementById('lyDoDD').value.trim();
             const msgDiv = document.getElementById('ddMessage');
+
             if (!mac) return msgDiv.innerHTML = '<div class="alert alert-warning">Chọn sinh viên!</div>';
+            if (!lyDo) {
+                msgDiv.innerHTML = '<div class="alert alert-warning">Vui lòng nhập lý do điểm danh thủ công!</div>';
+                return;
+            }
+
             try {
                 const res = await fetch('http://192.168.10.29:5000/diemdanh', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ MAC: mac })
+                    body: JSON.stringify({ MAC: mac, LyDo: lyDo })   // ← gửi thêm LyDo
                 });
                 const data = await res.json();
                 msgDiv.innerHTML = res.ok ?
                     `<div class="alert alert-success">${data.message} - ${data.Ten_SinhVien}: ${data.TrangThai}</div>` :
                     `<div class="alert alert-danger">${data.message}</div>`;
-                if (res.ok) { loadDiemDanh(); e.target.reset(); document.getElementById('macDD').value = ''; }
-            } catch (err) { msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>'; }
+                if (res.ok) { 
+                    loadDiemDanh(); 
+                    e.target.reset(); 
+                    document.getElementById('macDD').value = ''; 
+                }
+            } catch (err) { 
+                msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối!</div>'; 
+            }
         });
         function deleteDd(id) {
             if (confirm('Xóa?')) {
@@ -1138,72 +1160,63 @@
         });
         // ======================== HÀM XUẤT EXCEL  ========================
         function exportToExcel() {
-            // Lấy ngày người dùng chọn (nếu không chọn thì dùng hôm nay)
             const filterNgayInput = document.getElementById('filterNgay');
-            let selectedDate = filterNgayInput.value;
-            const today = new Date().toISOString().split('T')[0];
-            if (!selectedDate) {
-                selectedDate = today;
-                showToast('Không chọn ngày → xuất mặc định ngày hôm nay', 'info');
-            }
+            let selectedDate = filterNgayInput.value || new Date().toISOString().split('T')[0];
+
             const table = document.getElementById('diemDanhTable');
             const allRows = table.querySelectorAll('tbody tr');
             const data = [];
-            // Chỉ giữ 6 cột theo yêu cầu: STT, Tên, Buổi, Giờ Vào, Giờ Ra, Trạng Thái
-            data.push(['STT', 'Tên Sinh Viên', 'Buổi', 'Giờ Vào', 'Giờ Ra', 'Trạng Thái']);
+            data.push(['STT', 'Tên Sinh Viên', 'Buổi', 'Giờ Vào', 'Giờ Ra', 'Trạng Thái', 'Lý do']);  // ← thêm cột
+
             let stt = 1;
             let hasData = false;
             allRows.forEach(row => {
                 const ngayRow = row.dataset.ngay;
-                if (ngayRow !== selectedDate) return;   // Chỉ lấy đúng ngày được chọn
+                if (ngayRow !== selectedDate) return;
+
                 const cols = row.querySelectorAll('td');
                 const tenSV = cols[0].textContent.trim();
                 const buoi = cols[2].textContent.trim();
                 const gioVao = cols[3].textContent.trim();
-                // Xử lý Giờ Ra
                 const gioRaHtml = cols[4].innerHTML;
                 const gioRa = gioRaHtml.includes('Chưa ra') ? 'Chưa ra' : cols[4].textContent.trim();
                 const trangThai = cols[6].textContent.trim();
-                // CHỈ XUẤT những sinh viên:
-                // 1. Đã có checkout (có giờ ra)
-                // 2. Có mặt (không phải Vắng)
+                const lyDo = row.querySelector('td:nth-child(8)') ? row.querySelector('td:nth-child(8)').textContent.trim() : ''; // fallback
+
                 if (gioRa !== 'Chưa ra' && !trangThai.includes('Vắng')) {
-                    data.push([stt++, tenSV, buoi, gioVao, gioRa, trangThai]);
+                    data.push([stt++, tenSV, buoi, gioVao, gioRa, trangThai, lyDo]);  // ← thêm lyDo
                     hasData = true;
                 }
             });
+
             if (!hasData) {
                 showToast(`Không có sinh viên nào có mặt & đã checkout ngày ${selectedDate}`, 'warning');
                 return;
             }
+
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(data);
-            // Căn độ rộng cột cho đẹp
             ws['!cols'] = [
-                { wch: 6 },   // STT
-                { wch: 30 },  // Tên
-                { wch: 10 },  // Buổi
-                { wch: 12 },  // Giờ Vào
-                { wch: 12 },  // Giờ Ra
-                { wch: 25 }   // Trạng Thái
+                { wch: 6 }, { wch: 30 }, { wch: 10 }, { wch: 12 },
+                { wch: 12 }, { wch: 25 }, { wch: 50 }   // ← cột Lý do rộng hơn
             ];
-            // Style header
+
             const headerStyle = {
                 font: { bold: true, color: { rgb: "FFFFFF" } },
                 fill: { fgColor: { rgb: "4F46E5" } },
                 alignment: { horizontal: "center", vertical: "center" }
             };
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 7; i++) {   // ←  7 cột
                 const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
                 if (cell) cell.s = headerStyle;
             }
+
             XLSX.utils.book_append_sheet(wb, ws, "DiemDanh");
-            // Tên file = ngày xuất (theo yêu cầu)
             const fileName = `DanhSach_DiemDanh_${selectedDate}.xlsx`;
             XLSX.writeFile(wb, fileName);
             showToast(`✅ Đã xuất file Excel ngày ${selectedDate} thành công!`, 'success');
         }
-        // ========== THÊM VÀO CUỐI PHẦN SCRIPT ==========
+        
 
         // Function để hiển thị trang đăng nhập
         function showLoginPage() {
