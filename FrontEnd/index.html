@@ -303,8 +303,12 @@
     <div id="studentViewPage" class="page active">
         <div class="login-container"> <!-- Sử dụng kiểu tương tự login để trung tâm -->
             <div class="login-card" style="max-width: 90%; width: 100%; padding: 2rem;">
+                
                 <div class="wifi-icon">WiFi</div>
                 <h2 class="text-center mb-4">Danh Sách Điểm Danh</h2>
+                <div class="text-end mt-3">
+                    <button class="btn btn-primary" onclick="showLoginPage()">Đăng Nhập Admin</button>
+                </div>
                 <div class="table-container">
                     <div class="table-scroll-wrapper">
                         <table class="table table-striped table-hover" id="studentDiemDanhTable">
@@ -315,9 +319,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="text-end mt-3">
-                    <button class="btn btn-primary" onclick="showLoginPage()">Đăng Nhập Admin</button>
-                </div>
+                
             </div>
         </div>
     </div>
@@ -420,7 +422,7 @@
                         <table class="table table-striped table-hover" id="sinhVienTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
+                                    
                                     <th>Tên</th>
                                     <th>MSSV</th>
                                     <th>Trạng thái</th>
@@ -469,7 +471,6 @@
                         <table class="table table-striped table-hover" id="thietBiTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
                                     <th>Sinh viên</th>
                                     <th>MAC</th>
                                     <th>Tên TB</th>
@@ -538,6 +539,7 @@
                                     <th>Ra</th>
                                     <th>Ngày</th>
                                     <th>Trạng thái</th>
+                                    <th>Lý do</th>
                                     <th>Hành động</th>
                                 </tr>
                             </thead>
@@ -586,7 +588,6 @@
                         <table class="table table-striped table-hover" id="caiDatTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
                                     <th>Buổi</th>
                                     <th>Bắt đầu</th>
                                     <th>Kết thúc</th>
@@ -704,7 +705,6 @@
                 data.forEach(sv => {
                     const isActive = sv.Is_active === true;
                     tbody.innerHTML += `<tr>
-                        <td><small class="text-muted">${sv._id.slice(-6)}</small></td>
                         <td><strong>${sv.Ten}</strong></td>
                         <td>${sv.MSSV}</td>
                         <td>
@@ -805,7 +805,6 @@
                         : 'N/A';
                     tbody.innerHTML += `
                     <tr>
-                        <td><small class="text-muted">${tb._id.slice(-6)}</small></td>
                         <td><strong>${tenSV}</strong></td>
                         <td class="mac-col">${tb.MAC}</td>
                         <td>${tb.Ten_ThietBi}</td>
@@ -958,6 +957,7 @@
                         <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
                         <td><strong>${ngayDisplay}</strong></td>
                         <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
+                        <td>${dd.LyDo || ''}</td>
                         <td>
                             <button class="btn btn-sm btn-warning" onclick="openEditModal('${dd._id}', '${dd.Ten_SinhVien}', '${dd.TD_Vao || ''}', '${dd.TD_Ra || ''}', '${dd.TrangThai}')">Sửa</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
@@ -1027,7 +1027,6 @@
                 tbody.innerHTML = '';
                 data.forEach(cd => {
                     tbody.innerHTML += `<tr>
-                        <td><small>${cd._id.slice(-6)}</small></td>
                         <td>${cd.Buoi}</td><td>${cd.TD_BatDau}</td><td>${cd.TD_KetThuc}</td>
                         <td>${cd.TD_Reset || 'N/A'}</td><td>${cd.Mail || 'N/A'}</td><td>${cd.TG_DiTre || 0}</td>
                         <td>${cd.TD_Setting ? new Date(cd.TD_Setting).toLocaleString('vi-VN') : 'N/A'}</td>

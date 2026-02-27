@@ -5,6 +5,7 @@ from db_connect import (
     sinhvien_col, thietbi_col, caidat_col, diemdanh_col, dangnhap_col,
     get_all, get_by_id, insert_one, update_one, delete_one
 )
+from wifi_connect import xac_dinh_buoi  # ← THÊM IMPORT NÀY
 
 routes = web.RouteTableDef()
 
@@ -162,346 +163,228 @@ async def delete_thietbi(request):
     sinhvien_id = tb["SinhVien_id"]
     await delete_one(thietbi_col, id)
 
-    # ### SỬA MỚI: Khi activate latest, set theo Is_active của sinh viên
-    latest = await thietbi_col.find_one({"SinhVien_id": sinhvien_id}, sort=[("TD_Them_ThietBi", -1)])
-    if latest:
-        sinhvien = await sinhvien_col.find_one({"_id": sinhvien_id})
-        new_active = sinhvien.get("Is_active", False) if sinhvien else False
-        await thietbi_col.update_one({"_id": latest["_id"]}, {"$set": {"Is_active": new_active}})
+# =============================== 
+# 🔹 3. CÀI ĐẶT 
+# =============================== 
 
-    return web.json_response({"message": "Xóa thiết bị thành công!"})
-# ===============================
-# 🔹 3. CÀI ĐẶT
-# ===============================
-@routes.post("/caidat")
-async def add_caidat(request):
-    data = await request.json()
-    buoi = data.get("Buoi")
-    if not buoi:
-        return web.json_response({"message": "Thiếu thông tin Buổi!"}, status=400)
+@routes.get("/caidat") 
+async def get_all_caidat(request): 
+    data = await get_all(caidat_col) 
+    return web.json_response(data) 
 
-    await caidat_col.update_many({"Buoi": buoi}, {"$set": {"Is_active": False}})
+@routes.get("/caidat/{id}") 
+async def get_caidat(request): 
+    id = request.match_info["id"] 
+    cd = await get_by_id(caidat_col, id) 
+    if cd: 
+        return web.json_response(cd) 
+    return web.json_response({"message": "Không tìm thấy cài đặt!"}, status=404) 
 
-    new_cd = {
-        "Buoi": buoi,
-        "TD_BatDau": data.get("TD_BatDau"),
-        "TD_KetThuc": data.get("TD_KetThuc"),
-        "TD_Reset": data.get("TD_Reset"),
-        "Mail": data.get("Mail"),
-        "TG_DiTre": data.get("TG_DiTre"),
-        "TD_Setting": datetime.now(),
-        "Is_active": True
-    }
-    await insert_one(caidat_col, new_cd)
-    return web.json_response({"message": "Thêm cài đặt thành công!"}, status=201)
+@routes.post("/caidat") 
+async def add_caidat(request): 
+    data = await request.json() 
+    buoi = data.get("Buoi") 
+    td_batdau = data.get("TD_BatDau") 
+    td_ketthuc = data.get("TD_KetThuc") 
+    tg_ditre = data.get("TG_DiTre") 
 
-@routes.get("/caidat")
-async def get_all_caidat(request):
-    data = await get_all(caidat_col)
-    return web.json_response(data)
+    if not buoi or not td_batdau or not td_ketthuc: 
+        return web.json_response({"message": "Thiếu dữ liệu!"}, status=400) 
 
-@routes.get("/caidat/{id}")
-async def get_caidat(request):
-    id = request.match_info["id"]
-    cd = await get_by_id(caidat_col, id)
-    if cd:
-        return web.json_response(cd)
-    return web.json_response({"message": "Không tìm thấy cài đặt!"}, status=404)
+    existing = await caidat_col.find_one({"Buoi": buoi}) 
+    if existing: 
+        return web.json_response({"message": f"Buổi '{buoi}' đã tồn tại!"}, status=409) 
 
-@routes.put("/caidat/{id}")
-async def update_caidat(request):
-    id = request.match_info["id"]
-    data = await request.json()
-    await update_one(caidat_col, id, data)
-    return web.json_response({"message": "Cập nhật thành công!"})
+    caidat = { 
+        "Buoi": buoi, 
+        "TD_BatDau": td_batdau, 
+        "TD_KetThuc": td_ketthuc, 
+        "TG_DiTre": tg_ditre, 
+        "Is_active": True 
+    } 
+    await insert_one(caidat_col, caidat) 
+    return web.json_response({"message": "Thêm cài đặt thành công!"}, status=201) 
 
-@routes.delete("/caidat/{id}")
-async def delete_caidat(request):
-    id = request.match_info["id"]
-    await delete_one(caidat_col, id)
-    return web.json_response({"message": "Xóa thành công!"})
+@routes.put("/caidat/{id}") 
+async def update_caidat(request): 
+    id = request.match_info["id"] 
+    data = await request.json() 
+    await update_one(caidat_col, id, data) 
+    return web.json_response({"message": "Cập nhật thành công!"}) 
 
-
-# ===============================
-# 🔹 4. ĐIỂM DANH (ĐÃ SỬA LOGIC)
-# ===============================
-    
-@routes.get("/diemdanh")
-async def get_all_diemdanh(request):
-    data = await get_all(diemdanh_col)
-    return web.json_response(data)
-
-@routes.get("/diemdanh/{id}")
-async def get_diemdanh(request):
-    id = request.match_info["id"]
-    dd = await get_by_id(diemdanh_col, id)
-    if dd:
-        return web.json_response(dd)
-    return web.json_response({"error": "Không tìm thấy"}, status=404)
+@routes.delete("/caidat/{id}") 
+async def delete_caidat(request): 
+    id = request.match_info["id"] 
+    await delete_one(caidat_col, id) 
+    return web.json_response({"message": "Xóa thành công!"}) 
 
 # =============================== 
-# SỬA ĐIỂM DANH (TD_Vao, TD_Ra)
-# ===============================
+# 🔹 4. ĐIỂM DANH 
+# =============================== 
 
-@routes.put("/diemdanh/{id}")
-async def update_diemdanh(request):
-    id = request.match_info["id"]
-    data = await request.json()
+@routes.get("/diemdanh") 
+async def get_all_diemdanh(request): 
+    data = await get_all(diemdanh_col) 
+    return web.json_response(data) 
 
-    # Kiểm tra ID hợp lệ
-    try:
-        obj_id = ObjectId(id)
-    except:
-        return web.json_response({"message": "ID không hợp lệ!"}, status=400)
+@routes.get("/diemdanh/{id}") 
+async def get_diemdanh(request): 
+    id = request.match_info["id"] 
+    dd = await get_by_id(diemdanh_col, id) 
+    if dd: 
+        return web.json_response(dd) 
+    return web.json_response({"message": "Không tìm thấy điểm danh!"}, status=404) 
 
-    # Lấy bản ghi hiện tại
-    record = await diemdanh_col.find_one({"_id": obj_id})
-    if not record:
-        return web.json_response({"message": "Không tìm thấy bản ghi điểm danh!"}, status=404)
+@routes.post("/diemdanh") 
+async def diemdanh(request): 
+    data = await request.json() 
+    mac = data.get("MAC") 
+    ly_do = data.get("LyDo")   # ← THÊM MỚI: Lý do thủ công 
 
-    # Lấy dữ liệu mới từ request
-    td_vao_str = data.get("TD_Vao")  # format: "HH:MM"
-    td_ra_str = data.get("TD_Ra")    # có thể null
-    ly_do = data.get("LyDo", "")     # Thêm lý do
-    buoi = record["Buoi"]
+    if not mac: 
+        return web.json_response({"message": "Thiếu địa chỉ MAC!"}, status=400) 
 
-    # Sửa lỗi: Lấy ngày từ "Ngay" hoặc từ "TD_Vao" nếu thiếu
-    ngay = record.get("Ngay")
-    if not ngay:
-        if "TD_Vao" in record and record["TD_Vao"]:
-            ngay = record["TD_Vao"].strftime("%Y-%m-%d")
-        else:
-            ngay = datetime.today().strftime("%Y-%m-%d")
+    thietbi = await thietbi_col.find_one({"MAC": mac}) 
+    if not thietbi: 
+        return web.json_response({ 
+            "message": "Thiết bị không hợp lệ hoặc đã bị vô hiệu hóa!", 
+            "Ten_SinhVien": "Khách" 
+        }, status=403) 
 
-    # Tìm cài đặt buổi
-    caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
-    if not caidat:
-        return web.json_response({"message": f"Không có cài đặt cho buổi {buoi}!"}, status=400)
+    sinhvien = await sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]}) 
+    ten_sv = sinhvien["Ten"] if sinhvien else "Khách" 
 
-    TD_BatDau = datetime.strptime(caidat["TD_BatDau"], "%H:%M").time()
-    TD_KetThuc = datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time()
-    TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0)))
+    now = datetime.now()  # ← DI CHUYỂN LÊN ĐÂY 
 
-    # Chuyển đổi thời gian
-    try:
-        td_vao_time = datetime.strptime(td_vao_str, "%H:%M").time() if td_vao_str else None
-        td_ra_time = datetime.strptime(td_ra_str, "%H:%M").time() if td_ra_str else None
-    except:
-        return web.json_response({"message": "Định dạng giờ không hợp lệ! Dùng HH:MM"}, status=400)
+    buoi = await xac_dinh_buoi(now)  # ← FIX: AWAIT VÀ THAM SỐ NOW 
+    if not buoi: 
+        return web.json_response({"message": "Không xác định được buổi học!"}, status=400)  # ← THÊM KIỂM TRA 
 
-    # Tạo datetime đầy đủ
-    today = datetime.strptime(ngay, "%Y-%m-%d").date()
-    td_vao_dt = datetime.combine(today, td_vao_time) if td_vao_time else None
-    td_ra_dt = datetime.combine(today, td_ra_time) if td_ra_time else None
+    caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True}) 
+    if not caidat: 
+        return web.json_response({"message": f"Không có cài đặt cho buổi {buoi}!"}, status=404) 
 
-    # Tính trạng thái Check-in
-    batdau_dt = datetime.combine(today, TD_BatDau)
-    ketthuc_dt = datetime.combine(today, TD_KetThuc)
+    try: 
+        TD_BatDau = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time()) 
+        TD_KetThuc = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time()) 
+    except Exception: 
+        return web.json_response({"message": "Dữ liệu thời gian không hợp lệ!"}, status=500) 
 
-    trangthai_vao = "Có mặt"
-    if td_vao_dt < batdau_dt + TG_DiTre:
-        trangthai_vao = "Đi trễ"
-    elif td_vao_dt < ketthuc_dt:
-        trangthai_vao = "Vắng"
+    TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0))) if caidat.get("TG_DiTre") else timedelta(minutes=0) 
+    today = datetime.now().date() 
+    start_of_today = datetime(today.year, today.month, today.day) 
 
-    # Tính trạng thái Check-out
-    trangthai_ra = ""
-    if td_ra_dt:
-        if td_ra_dt < ketthuc_dt and trangthai_vao not in ["Vắng"]:
-            trangthai_ra = "Về sớm"
-        else:
-            trangthai_ra = ""  # Không thêm nếu ra đúng giờ hoặc muộn
+    record = await diemdanh_col.find_one({ 
+        "MAC": mac, 
+        "Buoi": buoi, 
+        "TD_Vao": {"$gte": start_of_today} 
+    }) 
 
-    # Kết hợp trạng thái
-    trangthai_ket_hop = trangthai_vao
-    if trangthai_ra:
-        trangthai_ket_hop += f" - {trangthai_ra}"
+    # ==================== ĐIỂM DANH THỦ CÔNG ==================== 
+    if not record and ly_do:   # ← Chỉ áp dụng khi có LyDo (thủ công) 
+        new_record = { 
+            "TD_Vao": now, 
+            "TD_Ra": TD_KetThuc,           # ← Mặc định giờ ra = TD_Kết thúc buổi 
+            "Buoi": buoi, 
+            "MAC": mac, 
+            "Ten_SinhVien": ten_sv, 
+            "TrangThai": "Có mặt",         # ← Mặc định "Có mặt" 
+            "LyDo": ly_do                  # ← Lưu lý do 
+        } 
+        await insert_one(diemdanh_col, new_record)   
+        return web.json_response({ 
+            "Ten_SinhVien": ten_sv, 
+            "TrangThai": "Có mặt", 
+            "Buoi": buoi, 
+            "TD_Vao": now.strftime("%H:%M:%S"), 
+            "TD_Ra": TD_KetThuc.strftime("%H:%M:%S"), 
+            "LyDo": ly_do, 
+            "message": "Điểm danh thủ công thành công!" 
+        }, status=201) 
 
-    # Nếu có lý do (thủ công), override trạng thái thành "Có mặt" và set TD_Ra nếu null
-    if ly_do.strip():
-        trangthai_ket_hop = "Có mặt"
-        if not td_ra_dt:
-            td_ra_dt = ketthuc_dt
+    # ==================== LOGIC CŨ (TỰ ĐỘNG WIFI) - KHÔNG THAY ĐỔI ==================== 
+    # TRƯỜNG HỢP 1: CHƯA CÓ BẢN GHI (CHECK-IN LẦN ĐẦU) 
+    if not record: 
+        trangthai_checkin = "" 
+        if now <= TD_BatDau: 
+            trangthai_checkin = "Có mặt" 
+        elif now <= (TD_BatDau + TG_DiTre): 
+            trangthai_checkin = "Đi trễ" 
+        else: 
+            trangthai_checkin = "Vắng" 
 
-    # Cập nhật bản ghi
-    update_data = {
-        "TD_Vao": td_vao_dt,
-        "TD_Ra": td_ra_dt,
-        "TrangThai": trangthai_ket_hop,
-        "LyDo": ly_do
-    }
+        new_record = { 
+            "TD_Vao": now, 
+            "TD_Ra": None, 
+            "Buoi": buoi, 
+            "MAC": mac, 
+            "Ten_SinhVien": ten_sv, 
+            "TrangThai": trangthai_checkin, 
+        } 
+        await insert_one(diemdanh_col, new_record)   
+        return web.json_response({ 
+            "Ten_SinhVien": ten_sv, 
+            "TrangThai": trangthai_checkin, 
+            "Buoi": buoi, 
+            "TD_Vao": now.strftime("%H:%M:%S"), 
+            "TD_Ra": now.strftime("%H:%M:%S"), 
+            "message": "Điểm danh lần đầu thành công!" 
+        }, status=201) 
 
-    await diemdanh_col.update_one({"_id": obj_id}, {"$set": update_data})
+    # TRƯỜNG HỢP 2: ĐÃ CÓ BẢN GHI (CHECK-OUT) - GIỮ NGUYÊN LOGIC CŨ 
+    else: 
+        trangthai_hien_tai = record.get("TrangThai", "") 
+        if " - " in trangthai_hien_tai: 
+            trangthai_checkin_truoc = trangthai_hien_tai.split(" - ")[0] 
+            trangthai_checkout_hien_tai = trangthai_hien_tai.split(" - ")[1] 
+        else: 
+            trangthai_checkin_truoc = trangthai_hien_tai 
+            trangthai_checkout_hien_tai = trangthai_hien_tai 
 
-    return web.json_response({
-        "message": "Cập nhật điểm danh thành công!",
-        "Ten_SinhVien": record["Ten_SinhVien"],
-        "TD_Vao": td_vao_str or "",
-        "TD_Ra": td_ra_str or "Chưa ra",
-        "TrangThai": trangthai_ket_hop,
-        "Buoi": buoi
-    })
+        # Điều kiện để gán trạng thái "Về sớm" cho Check-out: 
+        # 1. Thời gian hiện tại phải sớm hơn giờ kết thúc. 
+        # 2. Trạng thái Check-out hiện tại KHÔNG PHẢI là "Về sớm" hoặc "Vắng". 
+        #    (Trạng thái "Vắng" khi check-in sẽ được coi là Vắng luôn, không cập nhật về sớm) 
+        is_first_time_early_leave = ( 
+            now < TD_KetThuc and 
+            trangthai_checkout_hien_tai not in ["Vắng", "Về sớm"]  
+        ) 
 
-@routes.delete("/diemdanh/{id}")
-async def delete_diemdanh(request):
-    id = request.match_info["id"]
-    await delete_one(diemdanh_col, id)
-    return web.json_response({"message": "Xóa thành công!"})
+        update_fields = {"TD_Ra": now} 
+        message = f"Đã cập nhật giờ ra (buổi {buoi})!" 
 
-@routes.post("/diemdanh")
-async def diemdanh(request):
-    data = await request.json()
-    mac = data.get("MAC")
-    ly_do = data.get("LyDo")   # ← THÊM MỚI: Lý do thủ công
-
-    if not mac:
-        return web.json_response({"message": "Thiếu địa chỉ MAC!"}, status=400)
-
-    thietbi = await thietbi_col.find_one({"MAC": mac})
-    if not thietbi :
-        return web.json_response({
-            "message": "Thiết bị không hợp lệ hoặc đã bị vô hiệu hóa!",
-            "Ten_SinhVien": "Khách"
-        }, status=403)
-
-    sinhvien = await sinhvien_col.find_one({"_id": thietbi["SinhVien_id"]})
-    ten_sv = sinhvien["Ten"] if sinhvien else "Khách"
-
-    buoi = xac_dinh_buoi()
-    caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
-    if not caidat:
-        return web.json_response({"message": f"Không có cài đặt cho buổi {buoi}!"}, status=404)
-
-    try:
-        TD_BatDau = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_BatDau"], "%H:%M").time())
-        TD_KetThuc = datetime.combine(datetime.today(), datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time())
-    except Exception:
-        return web.json_response({"message": "Dữ liệu thời gian không hợp lệ!"}, status=500)
-
-    TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0))) if caidat.get("TG_DiTre") else timedelta(minutes=0)
-    now = datetime.now()
-    today = datetime.now().date()
-    start_of_today = datetime(today.year, today.month, today.day)
-
-    record = await diemdanh_col.find_one({
-        "MAC": mac,
-        "Buoi": buoi,
-        "TD_Vao": {"$gte": start_of_today}
-    })
-
-    # ==================== ĐIỂM DANH THỦ CÔNG ====================
-    if not record and ly_do:   # ← Chỉ áp dụng khi có LyDo (thủ công)
-        new_record = {
-            "TD_Vao": now,
-            "TD_Ra": TD_KetThuc,           # ← Mặc định giờ ra = TD_Kết thúc buổi
-            "Buoi": buoi,
-            "MAC": mac,
-            "Ten_SinhVien": ten_sv,
-            "TrangThai": "Có mặt",         # ← Mặc định "Có mặt"
-            "LyDo": ly_do                  # ← Lưu lý do
-        }
-        await insert_one(diemdanh_col, new_record)  
-        return web.json_response({
-            "Ten_SinhVien": ten_sv,
-            "TrangThai": "Có mặt",
-            "Buoi": buoi,
-            "TD_Vao": now.strftime("%H:%M:%S"),
-            "TD_Ra": TD_KetThuc.strftime("%H:%M:%S"),
-            "LyDo": ly_do,
-            "message": "Điểm danh thủ công thành công!"
-        }, status=201)
-    
-    # ==================== ĐIỂM DANH TỰ ĐỘNG ====================
-    # TRƯỜNG HỢP 1: CHƯA CÓ BẢN GHI (CHECK-IN LẦN ĐẦU)
-    if not record:
-        trangthai_checkin = ""
-        if now <= TD_BatDau:
-            trangthai_checkin = "Có mặt"
-        elif now <= (TD_BatDau + TG_DiTre):
-            trangthai_checkin = "Đi trễ"
-        else:
-            trangthai_checkin = "Vắng"
-
-        new_record = {
-            "TD_Vao": now,
-            "TD_Ra": None,
-            "Buoi": buoi,
-            "MAC": mac,
-            "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai_checkin, # Trạng thái ban đầu chỉ là Check-in status
-            "LyDo": ""  # Mặc định rỗng cho tự động
-        }
-        await insert_one(diemdanh_col, new_record)  
-        return web.json_response({
-            "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai_checkin, # Trả về trạng thái Check-in
-            "Buoi": buoi,
-            "TD_Vao": now.strftime("%H:%M:%S"),
-            "TD_Ra": now.strftime("%H:%M:%S"),
-            "message": "Điểm danh lần đầu thành công!"
-        }, status=201)
-
-    # TRƯỜNG HỢP 2: ĐÃ CÓ BẢN GHI (CHECK-OUT)
-    else:
-        # Tách trạng thái Check-in cũ. Nếu là chuỗi kết hợp, lấy phần đầu. Nếu là chuỗi đơn, coi là trạng thái Check-in.
-        trangthai_hien_tai = record.get("TrangThai", "")
-        if " - " in trangthai_hien_tai:
-             # Nếu đã là dạng "Check-in - Check-out", ta chỉ lấy phần Check-in
-            trangthai_checkin_truoc = trangthai_hien_tai.split(" - ")[0]
-            trangthai_checkout_hien_tai = trangthai_hien_tai.split(" - ")[1]
-        else:
-            # Nếu chỉ là dạng đơn (lần check-in đầu tiên), coi đó là trạng thái Check-in
-            trangthai_checkin_truoc = trangthai_hien_tai
-            trangthai_checkout_hien_tai = trangthai_hien_tai
-
-        # Mặc định trạng thái Check-out mới là trạng thái Check-in (nếu không về sớm)
-        trangthai_checkout_moi = trangthai_checkin_truoc 
-
-        # Điều kiện để gán trạng thái "Về sớm" cho Check-out:
-        # 1. Thời gian hiện tại phải sớm hơn giờ kết thúc.
-        # 2. Trạng thái Check-out hiện tại KHÔNG PHẢI là "Về sớm" hoặc "Vắng".
-        #    (Trạng thái "Vắng" khi check-in sẽ được coi là Vắng luôn, không cập nhật về sớm)
-        is_first_time_early_leave = (
-            now < TD_KetThuc and
-            trangthai_checkout_hien_tai not in ["Vắng", "Về sớm"] 
-        )
-
-        update_fields = {"TD_Ra": now}
-        message = f"Đã cập nhật giờ ra (buổi {buoi})!"
-
-        if is_first_time_early_leave:
-            # Lần đầu check-out sớm và chưa bị gán Vắng
-            trangthai_checkout_moi = "Về sớm"
-            message = "Sinh viên đã về sớm!"
-        elif trangthai_checkout_hien_tai == "Vắng":
-            # Nếu Check-in Vắng, Check-out cũng là Vắng (không thay đổi)
-            trangthai_checkout_moi = "Vắng"
-        elif trangthai_checkout_hien_tai == "Về sớm":
-            # Nếu đã bị gán Về sớm ở lần check-out trước, giữ nguyên Về sớm
-            trangthai_checkout_moi = "Về sớm"
-        else:
-             # Nếu Check-out sau giờ kết thúc, trạng thái Check-out là trạng thái Check-in
-             trangthai_checkout_moi = trangthai_checkin_truoc
+        if is_first_time_early_leave: 
+            # Lần đầu check-out sớm và chưa bị gán Vắng 
+            trangthai_checkout_moi = "Về sớm" 
+            message = "Sinh viên đã về sớm!" 
+        elif trangthai_checkout_hien_tai == "Vắng": 
+            # Nếu Check-in Vắng, Check-out cũng là Vắng (không thay đổi) 
+            trangthai_checkout_moi = "Vắng" 
+        elif trangthai_checkout_hien_tai == "Về sớm": 
+            # Nếu đã bị gán Về sớm ở lần check-out trước, giữ nguyên Về sớm 
+            trangthai_checkout_moi = "Về sớm" 
+        else: 
+             # Nếu Check-out sau giờ kết thúc, trạng thái Check-out là trạng thái Check-in 
+             trangthai_checkout_moi = trangthai_checkin_truoc 
         
-        # Cập nhật cột TrangThai thành chuỗi kết hợp
-        trangthai_ket_hop = f"{trangthai_checkin_truoc} - {trangthai_checkout_moi}"
-        update_fields["TrangThai"] = trangthai_ket_hop
+        # Cập nhật cột TrangThai thành chuỗi kết hợp 
+        trangthai_ket_hop = f"{trangthai_checkin_truoc} - {trangthai_checkout_moi}" 
+        update_fields["TrangThai"] = trangthai_ket_hop 
         
-        await diemdanh_col.update_one(
-            {"_id": record["_id"]},
-            {"$set": update_fields}
-        )
+        await diemdanh_col.update_one( 
+            {"_id": record["_id"]}, 
+            {"$set": update_fields} 
+        ) 
         
         
-        return web.json_response({
-            "Ten_SinhVien": ten_sv,
-            "TrangThai": trangthai_ket_hop, # Trả về trạng thái kết hợp
-            "Buoi": buoi,
-            "TD_Vao": record.get("TD_Vao").strftime("%H:%M:%S"),
-            "TD_Ra": now.strftime("%H:%M:%S"),
-            "message": message
-        }, status=200)
-
+        return web.json_response({ 
+            "Ten_SinhVien": ten_sv, 
+            "TrangThai": trangthai_ket_hop, # Trả về trạng thái kết hợp 
+            "Buoi": buoi, 
+            "TD_Vao": record.get("TD_Vao").strftime("%H:%M:%S"), 
+            "TD_Ra": now.strftime("%H:%M:%S"), 
+            "message": message 
+        }, status=200) 
 
 # ===============================
 # 🔹 5. ĐĂNG NHẬP
