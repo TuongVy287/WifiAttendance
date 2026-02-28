@@ -333,20 +333,20 @@ async def xac_dinh_buoi(now):
         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
             return cd["Buoi"]
 
-    # Nếu sau tất cả, tìm buổi gần nhất TRƯỚC ĐÓ (dựa trên TD_KetThuc hoặc TD_Reset)
-    active_caidat.sort(key=lambda x: x["ketthuc_time"], reverse=True)  # Sort descending để lấy buổi gần nhất trước
-    prev_buoi = None
-    min_diff = float('inf')
-    for cd in active_caidat:
-        if now_time > cd["ketthuc_time"]:
-            diff = (now - datetime.combine(now.date(), cd["ketthuc_time"])).total_seconds()
-            if diff < min_diff:
-                min_diff = diff
-                prev_buoi = cd["Buoi"]
+    # # Nếu sau tất cả, tìm buổi gần nhất TRƯỚC ĐÓ (dựa trên TD_KetThuc hoặc TD_Reset)
+    # active_caidat.sort(key=lambda x: x["ketthuc_time"], reverse=True)  # Sort descending để lấy buổi gần nhất trước
+    # prev_buoi = None
+    # min_diff = float('inf')
+    # for cd in active_caidat:
+    #     if now_time > cd["ketthuc_time"]:
+    #         diff = (now - datetime.combine(now.date(), cd["ketthuc_time"])).total_seconds()
+    #         if diff < min_diff:
+    #             min_diff = diff
+    #             prev_buoi = cd["Buoi"]
 
-    if prev_buoi:
-        print(f"[INFO] Giờ {now_time} sau buổi, gán vào buổi gần nhất trước đó: {prev_buoi}")
-        return prev_buoi
+    # if prev_buoi:
+    #     print(f"[INFO] Giờ {now_time} sau buổi, gán vào buổi gần nhất trước đó: {prev_buoi}")
+    #     return prev_buoi
 
     # Fallback: Tìm buổi gần nhất tiếp theo (logic cũ)
     active_caidat.sort(key=lambda x: x["batdau_time"])

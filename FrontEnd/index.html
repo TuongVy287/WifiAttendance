@@ -329,6 +329,7 @@
                                 <th>Buổi</th>
                                 <th>Giờ vào</th>
                                 <th>Giờ ra</th>
+                                
                                 <th>Trạng thái</th>
                             </tr>
                         </thead>
@@ -372,7 +373,7 @@
                 <h4>WiFi Attendance</h4>
             </div>
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="#" onclick="showPage('dashboard')">Dashboard</a>
+                <li class="nav-item"><a class="nav-link active" href="#" onclick="showPage('dashboard')">Trang chủ</a>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('sinhvien')">Danh sách Sinh viên</a>
                 </li>
@@ -1267,7 +1268,6 @@
                     <td>${d.Buoi || ''}</td>
                     <td>${d.TD_Vao ? new Date(d.TD_Vao).toLocaleTimeString('vi-VN') : ''}</td>
                     <td>${d.TD_Ra ? new Date(d.TD_Ra).toLocaleTimeString('vi-VN') : '---'}</td>
-                    <td>${today}</td>
                     <td>
                         <span class="badge ${d.TrangThai?.includes('Có mặt') ? 'bg-success' : 'bg-warning'}">
                             ${d.TrangThai || '---'}
