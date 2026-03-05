@@ -266,39 +266,44 @@
 </head>
 
 <body>
-    <!-- Modal Sửa Điểm Danh (ĐÃ DI CHUYỂN VÀO TRONG BODY) -->
-    <div class="modal fade" id="editDiemDanhModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Sửa Điểm Danh</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editDiemDanhForm">
-                        <input type="hidden" id="editDdId">
-                        <div class="mb-3">
-                            <label class="form-label">Tên SV</label>
-                            <input type="text" class="form-control" id="editTenSV" disabled>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Giờ vào (HH:MM)</label>
-                            <input type="text" class="form-control" id="editTDVao" placeholder="09:15" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Giờ ra (HH:MM)</label>
-                            <input type="text" class="form-control" id="editTDRa" placeholder="Chưa ra">
-                        </div>
-                        <div id="editDdMessage"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditDiemDanh()">Lưu</button>
-                </div>
+    <!-- Modal Sửa Điểm Danh (CẬP NHẬT THÊM Ô LÝ DO) -->
+<div class="modal fade" id="editDiemDanhModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sửa Điểm Danh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDiemDanhForm">
+                    <input type="hidden" id="editDdId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên SV</label>
+                        <input type="text" class="form-control" id="editTenSV" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Giờ vào (HH:MM)</label>
+                        <input type="text" class="form-control" id="editTDVao" placeholder="09:15" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Giờ ra (HH:MM)</label>
+                        <input type="text" class="form-control" id="editTDRa" placeholder="Chưa ra">
+                    </div>
+                    <!-- THÊM MỚI: Ô NHẬP LÝ DO -->
+                    <div class="mb-3">
+                        <label class="form-label">Lý do </label>
+                        <input type="text" class="form-control" id="editLyDo" placeholder="Nhập lý do (tùy chọn)">
+                    </div>
+                    <div id="editDdMessage"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditDiemDanh()">Lưu</button>
             </div>
         </div>
     </div>
+</div>
     <!-- Trang Xem Điểm Danh cho Sinh Viên (Thêm trước div id="loginPage") -->
     <div id="studentViewPage" class="page active">
         <div class="login-container">
@@ -946,51 +951,52 @@
         document.getElementById('svSelectDD')?.addEventListener('change', function () {
             document.getElementById('macDD').value = mapSinhVienToMac[this.value] || '';
         });
-        async function loadDiemDanh() {
-            try {
-                const res = await fetch('http://192.168.10.29:5000/diemdanh');
-                const data = await res.json();
-                const tbody = document.querySelector('#diemDanhTable tbody');
-                tbody.innerHTML = '';
-                data.sort((a, b) => {
-                    const timeA = a.TD_Vao ? new Date(a.TD_Vao) : 0;
-                    const timeB = b.TD_Vao ? new Date(b.TD_Vao) : 0;
-                    return timeB - timeA;
-                });
-                data.forEach(dd => {
-                    const isoDate = dd.TD_Vao ? new Date(dd.TD_Vao).toISOString().split('T')[0] : '';
-                    const ngayDisplay = dd.TD_Vao
-                        ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', {
-                            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
-                        }).replace(',', '')
-                        : '<span class="text-muted">Chưa điểm danh</span>';
-                    let statusClass = 'badge ';
-                    let statusText = dd.TrangThai || 'Chưa xác định';
-                    if (statusText.includes('Có mặt') && !statusText.includes('trễ') && !statusText.includes('sớm')) statusClass += 'bg-success';
-                    else if (statusText.includes('Vắng - Về sớm') || statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
-                    else if (statusText.includes('Đi trễ') || statusText.includes('Về sớm')) statusClass += 'bg-danger';
-                    else statusClass += 'bg-secondary';
-                    tbody.innerHTML += `
-                    <tr data-ngay="${isoDate}">
-                        <td><strong>${dd.Ten_SinhVien}</strong></td>
-                        <td class="mac-col">${dd.MAC}</td>
-                        <td><span class="badge bg-info">${dd.Buoi}</span></td>
-                        <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : '-'}</td>
-                        <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
-                        <td><strong>${ngayDisplay}</strong></td>
-                        <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
-                        <td>${dd.LyDo || ''}</td>
-                        <td>
-                            <button class="btn btn-sm btn-warning" onclick="openEditModal('${dd._id}', '${dd.Ten_SinhVien}', '${dd.TD_Vao || ''}', '${dd.TD_Ra || ''}', '${dd.TrangThai}')">Sửa</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
-                        </td>
-                    </tr>`;
-                });
-                filterTable(); // Áp dụng lọc sau khi tải dữ liệu
-            } catch (err) {
-                showToast('Lỗi tải điểm danh!', 'danger');
-            }
-        }
+        // ========== LOAD ĐIỂM DANH (CẬP NHẬT ĐỂ TRUYỀN LÝ DO VÀO OPEN MODAL) ==========
+async function loadDiemDanh() {
+    try {
+        const res = await fetch('http://192.168.10.29:5000/diemdanh');
+        const data = await res.json();
+        const tbody = document.querySelector('#diemDanhTable tbody');
+        tbody.innerHTML = '';
+        data.sort((a, b) => {
+            const timeA = a.TD_Vao ? new Date(a.TD_Vao) : 0;
+            const timeB = b.TD_Vao ? new Date(b.TD_Vao) : 0;
+            return timeB - timeA;
+        });
+        data.forEach(dd => {
+            const isoDate = dd.TD_Vao ? new Date(dd.TD_Vao).toISOString().split('T')[0] : '';
+            const ngayDisplay = dd.TD_Vao
+                ? new Date(dd.TD_Vao).toLocaleDateString('vi-VN', {
+                    weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
+                }).replace(',', '')
+                : '<span class="text-muted">Chưa điểm danh</span>';
+            let statusClass = 'badge ';
+            let statusText = dd.TrangThai || 'Chưa xác định';
+            if (statusText.includes('Có mặt') && !statusText.includes('trễ') && !statusText.includes('sớm')) statusClass += 'bg-success';
+            else if (statusText.includes('Vắng - Về sớm') || statusText.includes('Vắng')) statusClass += 'bg-warning text-dark';
+            else if (statusText.includes('Đi trễ') || statusText.includes('Về sớm')) statusClass += 'bg-danger';
+            else statusClass += 'bg-secondary';
+            tbody.innerHTML += `
+            <tr data-ngay="${isoDate}">
+                <td><strong>${dd.Ten_SinhVien}</strong></td>
+                <td class="mac-col">${dd.MAC}</td>
+                <td><span class="badge bg-info">${dd.Buoi}</span></td>
+                <td>${dd.TD_Vao ? new Date(dd.TD_Vao).toLocaleTimeString('vi-VN') : '-'}</td>
+                <td>${dd.TD_Ra ? new Date(dd.TD_Ra).toLocaleTimeString('vi-VN') : '<small class="text-muted">Chưa ra</small>'}</td>
+                <td><strong>${ngayDisplay}</strong></td>
+                <td><span class="${statusClass} p-2 rounded">${statusText}</span></td>
+                <td>${dd.LyDo || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="openEditModal('${dd._id}', '${dd.Ten_SinhVien}', '${dd.TD_Vao || ''}', '${dd.TD_Ra || ''}', '${dd.TrangThai}', '${dd.LyDo || ''}')">Sửa</button>  <!-- ← THÊM LÝ DO VÀO OPEN MODAL -->
+                    <button class="btn btn-sm btn-danger" onclick="deleteDd('${dd._id}')">Xóa</button>
+                </td>
+            </tr>`;
+        });
+        filterTable(); // Áp dụng lọc sau khi tải dữ liệu
+    } catch (err) {
+        showToast('Lỗi tải điểm danh!', 'danger');
+    }
+}
         // ==================== SỬA SUBMIT FORM ĐIỂM DANH THỦ CÔNG ====================
         document.getElementById('diemDanhForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1103,72 +1109,79 @@
                     .then(() => loadCaiDat());
             }
         }
-        // ========== MODAL SỬA ĐIỂM DANH (CẬP NHẬT FIX LỖI) ==========
-        function openEditModal(id, tenSV, tdVaoStr, tdRaStr, trangthai) {
-            document.getElementById('editDdId').value = id;
-            document.getElementById('editTenSV').value = tenSV;
+        // ========== MODAL SỬA ĐIỂM DANH (CẬP NHẬT FIX LỖI + THÊM LÝ DO) ==========
+function openEditModal(id, tenSV, tdVaoStr, tdRaStr, trangthai, lyDo = '') {  // ← THÊM LÝ DO MẶC ĐỊNH ''
+    document.getElementById('editDdId').value = id;
+    document.getElementById('editTenSV').value = tenSV;
 
-            // Xử lý TD_Vao an toàn
-            let tdVao = '';
-            if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr !== 'undefined' && tdVaoStr.trim() !== '') {
-                const parts = tdVaoStr.split(' ');
-                if (parts.length > 1 && parts[1]) {
-                    tdVao = parts[1].substring(0, 5);
-                }
-            }
-            document.getElementById('editTDVao').value = tdVao;
-
-            // Xử lý TD_Ra an toàn
-            let tdRa = '';
-            if (tdRaStr && tdRaStr !== 'null' && tdRaStr !== 'undefined' && tdRaStr.trim() !== '') {
-                const parts = tdRaStr.split(' ');
-                if (parts.length > 1 && parts[1]) {
-                    tdRa = parts[1].substring(0, 5);
-                }
-            }
-            document.getElementById('editTDRa').value = tdRa;
-
-            editModal = new bootstrap.Modal(document.getElementById('editDiemDanhModal'));
-            editModal.show();
+    // Xử lý TD_Vao an toàn
+    let tdVao = '';
+    if (tdVaoStr && tdVaoStr !== 'null' && tdVaoStr !== 'undefined' && tdVaoStr.trim() !== '') {
+        const parts = tdVaoStr.split(' ');
+        if (parts.length > 1 && parts[1]) {
+            tdVao = parts[1].substring(0, 5);
         }
-        async function saveEditDiemDanh() {
-            const id = document.getElementById('editDdId').value;
-            const tdVao = document.getElementById('editTDVao').value.trim();
-            const tdRa = document.getElementById('editTDRa').value.trim();
-            const msgDiv = document.getElementById('editDdMessage');
-            if (!tdVao || !/^\d{2}:\d{2}$/.test(tdVao)) {
-                msgDiv.innerHTML = '<div class="alert alert-danger">Giờ vào không hợp lệ (HH:MM)!</div>';
-                return;
-            }
-            const body = { TD_Vao: tdVao };
-            if (tdRa && /^\d{2}:\d{2}$/.test(tdRa)) {
-                body.TD_Ra = tdRa;
-            }
-            try {
-                console.log('Sending PUT to:', `http://192.168.10.29:5000/diemdanh/${id}`, 'Body:', body); // Debug log
-                const res = await fetch(`http://192.168.10.29:5000/diemdanh/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                console.log('Response:', res.ok, data); // Debug log
-                msgDiv.innerHTML = res.ok
-                    ? `<div class="alert alert-success">${data.message}</div>`
-                    : `<div class="alert alert-danger">${data.message}</div>`;
-                if (res.ok) {
-                    setTimeout(() => {
-                        editModal.hide();
-                        loadDiemDanh();
-                        document.getElementById('editDiemDanhForm').reset();
-                    }, 1500);
-                }
-            } catch (err) {
-                console.error('Fetch error:', err); // Debug log
-                msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối! Kiểm tra backend có chạy không (python run.py).</div>';
-            }
+    }
+    document.getElementById('editTDVao').value = tdVao;
+
+    // Xử lý TD_Ra an toàn
+    let tdRa = '';
+    if (tdRaStr && tdRaStr !== 'null' && tdRaStr !== 'undefined' && tdRaStr.trim() !== '') {
+        const parts = tdRaStr.split(' ');
+        if (parts.length > 1 && parts[1]) {
+            tdRa = parts[1].substring(0, 5);
         }
-        // ========== KHỞI TẠO ==========
+    }
+    document.getElementById('editTDRa').value = tdRa;
+
+    // THÊM MỚI: GÁN GIÁ TRỊ LÝ DO HIỆN TẠI VÀO INPUT
+    document.getElementById('editLyDo').value = lyDo || '';
+
+    editModal = new bootstrap.Modal(document.getElementById('editDiemDanhModal'));
+    editModal.show();
+}
+
+async function saveEditDiemDanh() {
+    const id = document.getElementById('editDdId').value;
+    const tdVao = document.getElementById('editTDVao').value.trim();
+    const tdRa = document.getElementById('editTDRa').value.trim();
+    const lyDo = document.getElementById('editLyDo').value.trim();  // ← THÊM: LẤY LÝ DO
+    const msgDiv = document.getElementById('editDdMessage');
+    if (!tdVao || !/^\d{2}:\d{2}$/.test(tdVao)) {
+        msgDiv.innerHTML = '<div class="alert alert-danger">Giờ vào không hợp lệ (HH:MM)!</div>';
+        return;
+    }
+    const body = { TD_Vao: tdVao };
+    if (tdRa && /^\d{2}:\d{2}$/.test(tdRa)) {
+        body.TD_Ra = tdRa;
+    }
+    body.LyDo = lyDo;  // ← THÊM: GỬI LÝ DO TRONG BODY
+
+    try {
+        console.log('Sending PUT to:', `http://192.168.10.29:5000/diemdanh/${id}`, 'Body:', body); // Debug log
+        const res = await fetch(`http://192.168.10.29:5000/diemdanh/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        console.log('Response:', res.ok, data); // Debug log
+        msgDiv.innerHTML = res.ok
+            ? `<div class="alert alert-success">${data.message}</div>`
+            : `<div class="alert alert-danger">${data.message}</div>`;
+        if (res.ok) {
+            setTimeout(() => {
+                editModal.hide();
+                loadDiemDanh();
+                document.getElementById('editDiemDanhForm').reset();
+            }, 1500);
+        }
+    } catch (err) {
+        console.error('Fetch error:', err); // Debug log
+        msgDiv.innerHTML = '<div class="alert alert-danger">Lỗi kết nối! Kiểm tra backend có chạy không (python run.py).</div>';
+    }
+}
+// ========== KHỞI TẠO ==========
         document.addEventListener('DOMContentLoaded', function () {
             if (localStorage.getItem('loggedIn') === 'true') {
                 document.getElementById('loginPage').style.display = 'none';
