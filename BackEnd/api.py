@@ -251,20 +251,22 @@ async def update_diemdanh(request):
     if not record:
         return web.json_response({"message": "Không tìm thấy bản ghi điểm danh!"}, status=404)
 
-    # Lấy dữ liệu mới từ request
-    td_vao_str = data.get("TD_Vao")  # format: "HH:MM"
-    td_ra_str = data.get("TD_Ra")    # có thể null
+    # Lấy dữ liệu từ request
+    td_vao_str = data.get("TD_Vao")          # "HH:MM"
+    td_ra_str  = data.get("TD_Ra")           # "HH:MM" hoặc None
+    ly_do      = data.get("LyDo", "").strip()  # ← THÊM: Lý do
+
     buoi = record["Buoi"]
 
-    # Sửa lỗi: Lấy ngày từ "Ngay" hoặc từ "TD_Vao" nếu thiếu
+    # Lấy ngày
     ngay = record.get("Ngay")
     if not ngay:
-        if "TD_Vao" in record and record["TD_Vao"]:
+        if record.get("TD_Vao"):
             ngay = record["TD_Vao"].strftime("%Y-%m-%d")
         else:
             ngay = datetime.today().strftime("%Y-%m-%d")
 
-    # Tìm cài đặt buổi
+    # Lấy cài đặt buổi
     caidat = await caidat_col.find_one({"Buoi": buoi, "Is_active": True})
     if not caidat:
         return web.json_response({"message": f"Không có cài đặt cho buổi {buoi}!"}, status=400)
@@ -273,46 +275,49 @@ async def update_diemdanh(request):
     TD_KetThuc = datetime.strptime(caidat["TD_KetThuc"], "%H:%M").time()
     TG_DiTre = timedelta(minutes=int(caidat.get("TG_DiTre", 0)))
 
-    # Chuyển đổi thời gian
+    # Chuyển đổi giờ
     try:
         td_vao_time = datetime.strptime(td_vao_str, "%H:%M").time() if td_vao_str else None
-        td_ra_time = datetime.strptime(td_ra_str, "%H:%M").time() if td_ra_str else None
+        td_ra_time  = datetime.strptime(td_ra_str,  "%H:%M").time() if td_ra_str else None
     except:
         return web.json_response({"message": "Định dạng giờ không hợp lệ! Dùng HH:MM"}, status=400)
 
     # Tạo datetime đầy đủ
     today = datetime.strptime(ngay, "%Y-%m-%d").date()
     td_vao_dt = datetime.combine(today, td_vao_time) if td_vao_time else None
-    td_ra_dt = datetime.combine(today, td_ra_time) if td_ra_time else None
+    td_ra_dt  = datetime.combine(today, td_ra_time)  if td_ra_time  else None
 
-    # Tính trạng thái Check-in
+    # Tính trạng thái mặc định
     batdau_dt = datetime.combine(today, TD_BatDau)
     ketthuc_dt = datetime.combine(today, TD_KetThuc)
 
     trangthai_vao = "Có mặt"
-    if td_vao_dt < batdau_dt + TG_DiTre:
+    if td_vao_dt and td_vao_dt < batdau_dt + TG_DiTre:
         trangthai_vao = "Đi trễ"
-    elif td_vao_dt < ketthuc_dt:
+    elif td_vao_dt and td_vao_dt < ketthuc_dt:
         trangthai_vao = "Vắng"
 
-    # Tính trạng thái Check-out
     trangthai_ra = ""
     if td_ra_dt:
         if td_ra_dt < ketthuc_dt and trangthai_vao not in ["Vắng"]:
             trangthai_ra = "Về sớm"
-        else:
-            trangthai_ra = ""  # Không thêm nếu ra đúng giờ hoặc muộn
 
-    # Kết hợp trạng thái
     trangthai_ket_hop = trangthai_vao
     if trangthai_ra:
         trangthai_ket_hop += f" - {trangthai_ra}"
 
-    # Cập nhật bản ghi
+    # ==================== XỬ LÝ LÝ DO (THỦ CÔNG) ====================
+    if ly_do:                                   # Nếu có gửi LyDo → coi là sửa thủ công
+        trangthai_ket_hop = "Có mặt"            # Bắt buộc "Có mặt"
+        if not td_ra_dt:                        # Nếu chưa có giờ ra
+            td_ra_dt = ketthuc_dt               # Đặt giờ ra = giờ kết thúc buổi
+
+    # Cập nhật dữ liệu
     update_data = {
         "TD_Vao": td_vao_dt,
         "TD_Ra": td_ra_dt,
-        "TrangThai": trangthai_ket_hop
+        "TrangThai": trangthai_ket_hop,
+        "LyDo": ly_do                           # ← Lưu lý do (có thể rỗng)
     }
 
     await diemdanh_col.update_one({"_id": obj_id}, {"$set": update_data})
@@ -323,9 +328,9 @@ async def update_diemdanh(request):
         "TD_Vao": td_vao_str or "",
         "TD_Ra": td_ra_str or "Chưa ra",
         "TrangThai": trangthai_ket_hop,
+        "LyDo": ly_do,
         "Buoi": buoi
     })
-
 @routes.delete("/diemdanh/{id}")
 async def delete_diemdanh(request):
     id = request.match_info["id"]
