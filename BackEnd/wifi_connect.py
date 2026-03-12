@@ -333,20 +333,21 @@ async def xac_dinh_buoi(now):
         if cd["batdau_time"] <= now_time <= cd["ketthuc_time"]:
             return cd["Buoi"]
 
-    # # Nếu sau tất cả, tìm buổi gần nhất TRƯỚC ĐÓ (dựa trên TD_KetThuc hoặc TD_Reset)
-    # active_caidat.sort(key=lambda x: x["ketthuc_time"], reverse=True)  # Sort descending để lấy buổi gần nhất trước
-    # prev_buoi = None
-    # min_diff = float('inf')
-    # for cd in active_caidat:
-    #     if now_time > cd["ketthuc_time"]:
-    #         diff = (now - datetime.combine(now.date(), cd["ketthuc_time"])).total_seconds()
-    #         if diff < min_diff:
-    #             min_diff = diff
-    #             prev_buoi = cd["Buoi"]
+   # Nếu sau tất cả, tìm buổi gần nhất TRƯỚC ĐÓ (dựa trên TD_KetThuc hoặc TD_Reset)
+    active_caidat.sort(key=lambda x: x["ketthuc_time"], reverse=True)  # Sort descending để lấy buổi gần nhất trước
+    prev_buoi = None
+    min_diff = float('inf')
+    for cd in active_caidat:
+        ketthuc_or_reset = cd["reset_time"] if cd["reset_time"] else cd["ketthuc_time"]  # Ưu tiên TD_Reset nếu có
+        if now_time > ketthuc_or_reset:
+            diff = (now - datetime.combine(now.date(), ketthuc_or_reset)).total_seconds()
+            if diff < min_diff and diff <= 1800:  # Giới hạn diff < 30p để tránh gán sai ngày
+                min_diff = diff
+                prev_buoi = cd["Buoi"]
 
-    # if prev_buoi:
-    #     print(f"[INFO] Giờ {now_time} sau buổi, gán vào buổi gần nhất trước đó: {prev_buoi}")
-    #     return prev_buoi
+    if prev_buoi:
+        print(f"[INFO] Giờ {now_time} sau buổi, gán vào buổi gần nhất trước đó: {prev_buoi}")
+        return prev_buoi
 
     # Fallback: Tìm buổi gần nhất tiếp theo (logic cũ)
     active_caidat.sort(key=lambda x: x["batdau_time"])
@@ -470,7 +471,12 @@ async def checkin(mac, now):
             print(f"[CHECK-IN] {ten_sv} ({mac}) đã check-in, bỏ qua (đang kết nối).")
             return
         else:
-            # Reconnect: Reset TD_Ra về None và TrangThai về trạng thái check-in gốc từ TrangThai_CheckIn
+            # THÊM MỚI: Kiểm tra flag Auto_Checked_Out → Không reconnect nếu đã auto checkout
+            if existing.get("Auto_Checked_Out", False):
+                print(f"[INFO] Record đã auto checkout tại reset_time, không reconnect để giữ TD_Ra.")
+                return
+
+            # Reconnect bình thường nếu chưa auto (reset TD_Ra về None)
             trangthai_goc = existing.get("TrangThai_CheckIn", existing.get("TrangThai", "").split(" - ")[0])
             await diemdanh_col.update_one(
                 {"_id": existing["_id"]},
@@ -496,11 +502,11 @@ async def checkin(mac, now):
         "MAC": mac,
         "Ten_SinhVien": ten_sv,
         "TrangThai": trangthai,
-        "TrangThai_CheckIn": trangthai  # Lưu trạng thái gốc
+        "TrangThai_CheckIn": trangthai,  # Lưu trạng thái gốc
+        "Auto_Checked_Out": False  # THÊM MỚI: Flag mặc định False cho record mới
     }
     await diemdanh_col.insert_one(new_record)
     print(f"[CHECK-IN] {ten_sv} ({mac}) - {trangthai} ({buoi})")
-
 # ----------------- XỬ LÝ CHECK-OUT -----------------
 async def checkout(mac, now, is_auto=False):
     mac = mac.upper()
@@ -554,14 +560,20 @@ async def checkout(mac, now, is_auto=False):
         else:
             trangthai_ket_hop = trangthai_checkin
 
+    update_data = {
+        "TD_Ra": now,
+        "TrangThai": trangthai_ket_hop
+    }
+    if is_auto:  # THÊM MỚI: Set flag khi auto checkout
+        update_data["Auto_Checked_Out"] = True
+
     await diemdanh_col.update_one(
         {"_id": record["_id"]},
-        {"$set": {"TD_Ra": now, "TrangThai": trangthai_ket_hop}}  # Đảm bảo ghi TD_Ra = now (reset_time cho auto)
+        {"$set": update_data}  # Đảm bảo ghi TD_Ra = now (reset_time cho auto)
     )
 
     prefix = "[AUTO CHECK-OUT]" if is_auto else "[CHECK-OUT]"
     print(f"{prefix} {record['Ten_SinhVien']} ({mac}) - {trangthai_ket_hop} ({buoi}) với giờ ra: {now.strftime('%H:%M')}, thời gian ở lớp: {time_in_class}")
-
 # ----------------- QUÉT & CẬP NHẬT -----------------
 async def update_from_scan():
     now = datetime.now()
@@ -582,9 +594,9 @@ async def update_from_scan():
             await checkin(mac, now)
         else:
             await checkout(mac, now)
-
+      
     print(f"[{now.strftime('%H:%M:%S')}] ✅ Quét xong {len(online_ips)} IP online, {len(online_macs)} MAC hợp lệ.")
-
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")    
 # ----------------- CHẠY QUÉT ĐỊNH KỲ -----------------
 async def periodic_scan():
     while True:
