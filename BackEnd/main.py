@@ -3,7 +3,7 @@ from aiohttp import web
 from api import routes
 from wifi_connect import periodic_scan
 
-
+ 
 @web.middleware
 async def cors_middleware(request, handler):
     # Simple CORS middleware to allow requests from the frontend served on another port
